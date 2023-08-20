@@ -1,0 +1,40 @@
+# Create a new directory and enter it
+function mk() {
+  mkdir -p "$@" && cd "$@"
+}
+# Open man page as PDF
+function manpdf() {
+  man -t "${1}" | open -f -a /Applications/Preview.app/
+}
+# Quick navigations
+function cdh(){
+  cd ${HOME}
+}
+
+function sspack(){
+${HOME}/soft/system-spack/bin/spack "$@"
+}
+
+function cds(){
+  if [ -n "${SCRATCH}" ]; then
+    cd ${SCRATCH}
+  else
+    echo "SCRATCH var is not set"
+  fi
+}
+# Set a work directory to make it easy to jump back and forth
+function setwork(){
+  export MYWORKDIR=$(pwd)
+}
+
+function gtw(){
+  if [ -n "${MYWORKDIR}" ]; then
+    cd ${MYWORKDIR}
+  else
+    echo "MYWORKDIR var is not set"
+  fi
+}
+
+function git_branch_prune(){
+    git branch | grep -v "$1" | xargs git branch -D
+}

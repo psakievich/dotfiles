@@ -1,0 +1,15 @@
+spack:
+  specs:
+    - gcc
+    - cmake
+    - git
+    - tmux
+  view:
+    base:
+      root: ${HOME}/bin/spack-core
+      projections:
+        openssl: '{name}/{version}'
+  concretizer:
+    targets:
+      granularity: generic
+

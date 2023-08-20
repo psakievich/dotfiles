@@ -1,0 +1,5 @@
+# Things that should be sourced in a .bash_profile 
+source .functions
+source .alias
+source .variables
+

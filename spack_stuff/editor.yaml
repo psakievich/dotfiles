@@ -1,0 +1,12 @@
+spack:
+  specs:
+    - neovim
+    - the-silver-searcher
+  view:
+    base:
+      root: ${HOME}/bin/spack-editor
+      projections:
+        openssl: '{name}/{version}'
+  concretizer:
+    targets:
+      granularity: generic
