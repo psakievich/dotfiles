@@ -1,7 +1,5 @@
 #!/bin/bash -l
 #
-# export bash stuff check to see if we've already appended file
-dotfileSource=$(grep .dotprofile ${HOME}/.bash_profile)
 
 # Symlink dot-prefixed files
 for file in .*
@@ -9,13 +7,16 @@ do
   if [ -f "$file" ] && [ "$file" != "." ] && [ "$file" != ".." ] && [ "$file" != ".gitignore" ]; then
     filename=$(basename "$file")
     if [[ "$filename" == "."* ]]; then
-      #rm "${HOME}/$filename"
+      # delete it if it is there (rm stale links)
+      rm "${HOME}/$filename"
       ln -s "$(pwd)/$file" "${HOME}/$filename"
       echo "Created Link: ${HOME}/$filename"
     fi
   fi
 done
 
+# export bash stuff check to see if we've already appended file
+dotfileSource=$(grep .dotprofile ${HOME}/.bash_profile)
 if [ -z "${dotfileSource}" ]; then
   echo "Appending .bash_profile"
   echo "source ${HOME}/.dotprofile" >> ${HOME}/.bash_profile
@@ -26,6 +27,7 @@ mkdir -p ${HOME}/soft
 mkdir -p ${HOME}/.config/nvim
 mkdir -p ${HOME}/.config/nvim/lua
 
+# TODO not sure I like this
 DOTSPACK=$(pwd)/dotfiles-spack
 
 # clone spack and activate it
@@ -45,6 +47,7 @@ do
   fi
 done
 
+# utilize all the work from above in the shell going forward
 source ${HOME}/.bash_profile
 source ${DOTSPACK}/share/spack/setup-env.sh
 
@@ -66,7 +69,10 @@ fi
 done
 cd ${idir}
   
-
+# neovim packages via packer for now
+nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
+# Update syntax parsing for languages from TreeSitter
+nvim --headless -c "TSInstallSync maintained" -c q
 # TODO determine what python LSP server still
 # python -m pip install --user pyright
 

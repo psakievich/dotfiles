@@ -11,4 +11,7 @@ spack:
   concretizer:
     targets:
       granularity: generic
+  packages:
+    openssl:
+      require: "certs=system"
 

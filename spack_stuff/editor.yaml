@@ -1,7 +1,7 @@
 spack:
   specs:
     - neovim ^libluv@1.43.0 # needed for darwin build
-    - the-silver-searcher
+    - ripgrep
   view:
     base:
       root: ${HOME}/bin/spack-editor
@@ -10,3 +10,6 @@ spack:
   concretizer:
     targets:
       granularity: generic
+  packages:
+    openssl:
+      require: "certs=system"
