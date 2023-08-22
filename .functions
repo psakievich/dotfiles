@@ -2,7 +2,9 @@
 function mk() {
   mkdir -p "$@" && cd "$@"
 }
+
 # Open man page as PDF
+# TODO osx vs linux
 function manpdf() {
   man -t "${1}" | open -f -a /Applications/Preview.app/
 }
@@ -12,7 +14,7 @@ function cdh(){
 }
 
 function sspack(){
-${HOME}/soft/system-spack/bin/spack "$@"
+${HOME}/dotfiles/dotfiles-spack/bin/spack "$@"
 }
 
 function cds(){

@@ -1,2 +1,2 @@
-alias sspack=${HOME}/soft/system-spack/bin/spack
+alias sspack=${HOME}/dotfiles/dotfiles-spack/bin/spack
 

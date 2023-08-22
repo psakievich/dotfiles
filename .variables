@@ -6,6 +6,6 @@ set -o vi
 umask u=rwx,go=rx
 
 export SOFT_DIR=${HOME}/soft
-export PATH=${HOME}/myconfig/bin:${PATH}
+export PATH=${HOME}/bin/spack-core/bin:${HOME}/bin/spack-editor/bin:${PATH}
 export EDITOR=nvim
 export MYCONFIGINSTALLED=1

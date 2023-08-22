@@ -1,6 +1,6 @@
 spack:
   specs:
-    - neovim
+    - neovim ^libluv@1.43.0 # needed for darwin build
     - the-silver-searcher
   view:
     base:

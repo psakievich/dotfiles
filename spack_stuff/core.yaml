@@ -1,6 +1,5 @@
 spack:
   specs:
-    - gcc
     - cmake
     - git
     - tmux

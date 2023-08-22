@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #
 # export bash stuff check to see if we've already appended file
 dotfileSource=$(grep .dotprofile ${HOME}/.bash_profile)
@@ -9,6 +9,7 @@ do
   if [ -f "$file" ] && [ "$file" != "." ] && [ "$file" != ".." ] && [ "$file" != ".gitignore" ]; then
     filename=$(basename "$file")
     if [[ "$filename" == "."* ]]; then
+      #rm "${HOME}/$filename"
       ln -s "$(pwd)/$file" "${HOME}/$filename"
       echo "Created Link: ${HOME}/$filename"
     fi
@@ -25,9 +26,12 @@ mkdir -p ${HOME}/soft
 mkdir -p ${HOME}/.config/nvim
 mkdir -p ${HOME}/.config/nvim/lua
 
+DOTSPACK=$(pwd)/dotfiles-spack
+
 # clone spack and activate it
-if [ ! -d "${HOME}/soft/system-spack" ]; then
-  git clone --filter=blob:none -c feature.manyFiles=true https://github.com/spack/spack.git ${HOME}/soft/system-spack
+if [ ! -d "${DOTSPACK}" ]; then
+  git clone --filter=blob:none -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}
+  ${DOTSPACK}/bin/spack -k bootstrap now
 fi
 
 # links for nvim files
@@ -42,18 +46,25 @@ do
 done
 
 source ${HOME}/.bash_profile
+source ${DOTSPACK}/share/spack/setup-env.sh
 
 # create spack environments to install software
-installed=$(sspack env ls)
-envs=("editor" "core")
+idir=$(pwd)
+installed=$(spack env ls)
+envs=("core" "editor")
 for env in "${envs[@]}"
 do
-if [ "$installed" != *"$env}"* ]; then
-  sspack env create editor "$(pwd)/spack_stuff/${env}.yaml"
-  sspack -e editor concretize
-  sspack -e editor install
+if [ "$installed" != *"$env"* ]; then
+  spack env create ${env} "${idir}/spack_stuff/${env}.yaml"
 fi
+  spack env activate ${env}
+  spack cd -e
+  spack concretize
+  spack env depfile -o Makefile
+  make -j 10 
+  spack env deactivate
 done
+cd ${idir}
   
 
 # TODO determine what python LSP server still
