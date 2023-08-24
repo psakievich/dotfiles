@@ -127,6 +127,8 @@ map <F5> :call CompileRun()<CR>
 imap <F5> <Esc>:call CompileRun()<CR>
 vmap <F5> <Esc>:call CompileRun()<CR>
 
+autocmd BufWritePost *note-*.md silent !buildnote %:p
+
 func! CompileRun()
 exec "w"
 if &filetype == 'c'
