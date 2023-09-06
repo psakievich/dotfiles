@@ -2,6 +2,7 @@ spack:
   specs:
     - neovim ^libluv@1.43.0 # needed for darwin build
     - ripgrep
+    - pandoc
   view:
     base:
       root: ${HOME}/bin/spack-editor

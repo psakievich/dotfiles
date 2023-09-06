@@ -26,7 +26,7 @@ endtry
 :  autocmd BufWritePre *.cpp,*.C,*.H,*.hpp,*.py :call CleanExtraSpaces()
 :augroup END
 
-
+autocmd BufWritePost *note-*.md silte !buildNode %:p
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Helper functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
