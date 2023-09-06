@@ -3,6 +3,7 @@ spack:
     - cmake
     - git
     - tmux
+    - llvm
   view:
     base:
       root: ${HOME}/bin/spack-core
