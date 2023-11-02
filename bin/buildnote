@@ -6,6 +6,7 @@ outputFile="$(basename "$filename" .md).pdf"
 mkdir -p $target
 
 pandoc \
+    --highlight-style tango \
     --pdf-engine=xelatex \
     -V 'mainfont:DejaVuSerif' \
     -V 'mainfontoptions:Extension=.ttf, UprightFont=*, BoldFont=*-Bold, ItalicFont=*-Italic, BoldItalicFont=*-BoldItalic' \

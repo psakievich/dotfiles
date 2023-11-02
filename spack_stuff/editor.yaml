@@ -1,8 +1,10 @@
 spack:
   specs:
-    - neovim ^libluv@1.43.0 # needed for darwin build
-    - ripgrep
-    - pandoc
+  - neovim ^libluv@1.43.0 # needed for darwin build
+  - the-silver-searcher
+  - ripgrep
+  - pandoc
+  - py-python-lsp-sever
   view:
     base:
       root: ${HOME}/bin/spack-editor
