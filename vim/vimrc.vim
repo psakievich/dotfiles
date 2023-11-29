@@ -131,6 +131,21 @@ noremap <leader>tc :tabclose<cr>
 noremap <leader>tm :tabmove
 noremap <leader>t<leader> :tabnext<cr>
 
+" Window navigation
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" TMUX window remapping
+let g:tmux_navigator_no_mappings = 1
+
+noremap <silent> <C-h> :<C-U>TmuxNavigateLeft<cr>
+noremap <silent> <C-j> :<C-U>TmuxNavigateDown<cr>
+noremap <silent> <C-k> :<C-U>TmuxNavigateUp<cr>
+noremap <silent> <C-l> :<C-U>TmuxNavigateRight<cr>
+noremap <silent> <C-o> :<C-U>TmuxNavigatePrevious<cr>
+
 " Let 'tl' toggle between this and the last accessed tab
 let g:lasttab = 1
 nnoremap <Leader>tl :exe "tabn ".g:lasttab<CR>

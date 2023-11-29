@@ -15,6 +15,9 @@ do
   fi
 done
 
+# tmux package manager (TPM)
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+
 # export bash stuff check to see if we've already appended file
 dotfileSource=$(grep .dotprofile ${HOME}/.bash_profile)
 if [ -z "${dotfileSource}" ]; then

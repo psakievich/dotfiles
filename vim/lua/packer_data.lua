@@ -27,6 +27,7 @@ return require('packer').startup(function(use)
   use('tpope/vim-fugitive')
   use('tpope/vim-abolish')
   use('mileszs/ack.vim')
+  use('christoomey/vim-tmux-navigator')
   use({
     "iamcco/markdown-preview.nvim",
     run = function() vim.fn["mkdp#util#install"]() end,
