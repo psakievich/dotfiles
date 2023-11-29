@@ -1,6 +1,6 @@
 spack:
   specs:
-  - neovim ^libluv@1.43.0 # needed for darwin build
+  - neovim
   - the-silver-searcher
   - ripgrep
   - pandoc

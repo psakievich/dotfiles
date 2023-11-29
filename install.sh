@@ -37,6 +37,7 @@ DOTSPACK=$(pwd)/dotfiles-spack
 if [ ! -d "${DOTSPACK}" ]; then
   git clone --filter=blob:none -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}
   ${DOTSPACK}/bin/spack -k bootstrap now
+  ${DOTSPACK}/bin/spack config --scope site add config:environment_roots:$(pwd)/spack_environments
 fi
 
 # links for nvim files
@@ -56,13 +57,9 @@ source ${DOTSPACK}/share/spack/setup-env.sh
 
 # create spack environments to install software
 idir=$(pwd)
-installed=$(spack env ls)
-envs=("core" "editor")
+envs=(spack_environments/*)
 for env in "${envs[@]}"
 do
-if [ "$installed" != *"$env"* ]; then
-  spack env create ${env} "${idir}/spack_stuff/${env}.yaml"
-fi
   spack env activate ${env}
   spack cd -e
   spack concretize
@@ -76,6 +73,6 @@ cd ${idir}
 nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
 # Update syntax parsing for languages from TreeSitter
 nvim --headless -c "TSInstallSync maintained" -c q
-# TODO determine what python LSP server still
-# python -m pip install --user pyright
+# install tmux plugins
+~/.tmux/plugins/tpm/scripts/update_plugin.sh
 
