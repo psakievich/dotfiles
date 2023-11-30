@@ -28,11 +28,6 @@ return require('packer').startup(function(use)
   use('tpope/vim-abolish')
   use('mileszs/ack.vim')
   use('christoomey/vim-tmux-navigator')
-  use({
-    "iamcco/markdown-preview.nvim",
-    run = function() vim.fn["mkdp#util#install"]() end,
-})
-                                      
   use('neovim/nvim-lspconfig')        
   use('hrsh7th/cmp-nvim-lsp')         
   use('hrsh7th/cmp-buffer')           

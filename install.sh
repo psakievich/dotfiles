@@ -32,12 +32,15 @@ mkdir -p ${HOME}/.config/nvim/lua
 
 # TODO not sure I like this
 DOTSPACK=$(pwd)/dotfiles-spack
+export SPACK_DISABLE_LOCAL_CONFIG=1
 
 # clone spack and activate it
 if [ ! -d "${DOTSPACK}" ]; then
-  git clone --filter=blob:none -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}
+  git clone -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}
   ${DOTSPACK}/bin/spack -k bootstrap now
-  ${DOTSPACK}/bin/spack config --scope site add config:environment_roots:$(pwd)/spack_environments
+  ${DOTSPACK}/bin/spack config add config:environments_root:$(pwd)/spack_environments
+  ${DOTSPACK}/bin/spack mirror add E4S https://cache.e4s.io
+  ${DOTSPACK}/bin/spack buildcache keys --install --trust
 fi
 
 # links for nvim files
@@ -57,22 +60,18 @@ source ${DOTSPACK}/share/spack/setup-env.sh
 
 # create spack environments to install software
 idir=$(pwd)
-envs=(spack_environments/*)
+cd spack_environments
+envs=(*)
 for env in "${envs[@]}"
 do
-  spack env activate ${env}
-  spack cd -e
-  spack concretize
-  spack env depfile -o Makefile
-  make -j 10 
-  spack env deactivate
+  spack -e $env install
 done
 cd ${idir}
   
+# install tmux plugins
+~/.tmux/plugins/tpm/scripts/update_plugin.sh
 # neovim packages via packer for now
 nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
 # Update syntax parsing for languages from TreeSitter
 nvim --headless -c "TSInstallSync maintained" -c q
-# install tmux plugins
-~/.tmux/plugins/tpm/scripts/update_plugin.sh
 
