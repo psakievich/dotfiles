@@ -1,5 +1,9 @@
 #!/bin/bash -l
 #
+cmd() {
+  echo " + $@"
+  eval "$@"
+}
 
 TOPDIR=`pwd`
 # Symlink dot-prefixed files
@@ -65,13 +69,13 @@ source ${DOTSPACK}/share/spack/setup-env.sh
 if [ ! -d "${SPACK_MANAGER}" ]; then
   git clone https://github.com/sandialabs/spack-manager ${SPACK_MANAGER}
   cd ${SPACK_MANAGER}
-  ./install.py --scope site
+  git checkout develop
+  cmd "./install.py --scope site"
   cd ${TOPDIR}
-  spack manager add ${TOPDIR}
+  cmd "spack manager add ${TOPDIR}"
 
   # define externals at the site level to ensure use across all env's
-  MACHINE_NAME="$(spack manager find-machine | awk '{print $2}')"
-  $(spack manager location)/scripts/platform_configure_tool.py --scope site configs/${MACHINE_NAME}/externals_to_find.yaml
+  cmd "$(spack manager location)/scripts/platform_configure_tool.py --scope site $(spack manager find-machine --config)/externals_to_find.yaml"
 fi
 
 # create spack environments to install software
@@ -80,16 +84,15 @@ cd spack_environments
 envs=(*)
 for env in "${envs[@]}"
 do
-  quick-create -y $env/spack.yaml -n $env
-  spack install
-  spack env deactivate
+  cmd "spack manager create-env -y $env/spack.yaml -n $env"
+  cmd "spack -e $env install"
 done
 cd ${idir}
   
 # install tmux plugins
 ~/.tmux/plugins/tpm/scripts/update_plugin.sh
 # neovim packages via packer for now
-nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
+cmd "nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'"
 # Update syntax parsing for languages from TreeSitter
-nvim --headless -c "TSInstallSync maintained" -c q
+cmd "nvim --headless -c 'TSInstallSync maintaine' -c q"
 
