@@ -9,37 +9,10 @@ spack:
       root: ${HOME}/bin/spack-core
       projections:
         openssl: '{name}/{version}'
+      link: roots
   concretizer:
     targets:
       granularity: generic
   packages:
     openssl:
       require: certs=system
-
-  compilers:
-  - compiler:
-      spec: gcc@=4.4.7
-      paths:
-        cc: /usr/bin/gcc44
-        cxx: /usr/bin/g++44
-        f77: null
-        fc: null
-      flags: {}
-      operating_system: rhel7
-      target: x86_64
-      modules: []
-      environment: {}
-      extra_rpaths: []
-  - compiler:
-      spec: gcc@=4.8.5
-      paths:
-        cc: /usr/bin/gcc
-        cxx: /usr/bin/g++
-        f77: /usr/bin/gfortran
-        fc: /usr/bin/gfortran
-      flags: {}
-      operating_system: rhel7
-      target: x86_64
-      modules: []
-      environment: {}
-      extra_rpaths: []

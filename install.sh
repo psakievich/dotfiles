@@ -1,6 +1,7 @@
 #!/bin/bash -l
 #
 
+TOPDIR=`pwd`
 # Symlink dot-prefixed files
 for file in .*
 do
@@ -19,6 +20,7 @@ done
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 # export bash stuff check to see if we've already appended file
+touch ${HOME}/.bash_profile
 dotfileSource=$(grep .dotprofile ${HOME}/.bash_profile)
 if [ -z "${dotfileSource}" ]; then
   echo "Appending .bash_profile"
@@ -32,16 +34,18 @@ mkdir -p ${HOME}/.config/nvim/lua
 
 # TODO not sure I like this
 DOTSPACK=$(pwd)/dotfiles-spack
+SPACK_MANAGER=$(pwd)/spack-manager
 export SPACK_DISABLE_LOCAL_CONFIG=1
 
 # clone spack and activate it
 if [ ! -d "${DOTSPACK}" ]; then
   git clone -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}
-  ${DOTSPACK}/bin/spack -k bootstrap now
+  ${DOTSPACK}/bin/spack bootstrap now
   ${DOTSPACK}/bin/spack config add config:environments_root:$(pwd)/spack_environments
   ${DOTSPACK}/bin/spack mirror add E4S https://cache.e4s.io
   ${DOTSPACK}/bin/spack buildcache keys --install --trust
 fi
+
 
 # links for nvim files
 ln -s $(pwd)/vim/init.vim ${HOME}/.config/nvim/init.vim
@@ -58,13 +62,27 @@ done
 source ${HOME}/.bash_profile
 source ${DOTSPACK}/share/spack/setup-env.sh
 
+if [ ! -d "${SPACK_MANAGER}" ]; then
+  git clone https://github.com/sandialabs/spack-manager ${SPACK_MANAGER}
+  cd ${SPACK_MANAGER}
+  ./install.py --scope site
+  cd ${TOPDIR}
+  spack manager add ${TOPDIR}
+
+  # define externals at the site level to ensure use across all env's
+  MACHINE_NAME="$(spack manager find-machine | awk '{print $2}')"
+  $(spack manager location)/scripts/platform_configure_tool.py --scope site configs/${MACHINE_NAME}/externals_to_find.yaml
+fi
+
 # create spack environments to install software
 idir=$(pwd)
 cd spack_environments
 envs=(*)
 for env in "${envs[@]}"
 do
-  spack -e $env install
+  quick-create -y $env/spack.yaml -n $env
+  spack install
+  spack env deactivate
 done
 cd ${idir}
   

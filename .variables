@@ -10,3 +10,4 @@ export PATH=${HOME}/bin/spack-core/bin:${HOME}/bin/spack-editor/bin:${PATH}
 export PATH=${HOME}/bin/dotfiles-bin:${PATH}
 export EDITOR=nvim
 export MYCONFIGINSTALLED=1
+export TERM=xterm-color
