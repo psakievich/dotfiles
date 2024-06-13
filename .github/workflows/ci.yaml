@@ -4,7 +4,7 @@ on:
   push: 
     branches:
       - main
-  pull_requests:
+  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [darwin-latest, ubuntu-latest]
-      runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
