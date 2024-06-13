@@ -1,9 +1,7 @@
 spack:
   specs:
-  - neovim
-  - ripgrep
+  - editor
   - pandoc
-  - py-python-lsp-server
   view:
     base:
       root: ${HOME}/bin/spack-editor

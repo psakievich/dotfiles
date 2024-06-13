@@ -45,9 +45,9 @@ export SPACK_DISABLE_LOCAL_CONFIG=1
 if [ ! -d "${DOTSPACK}" ]; then
   git clone -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}
   ${DOTSPACK}/bin/spack bootstrap now
-  ${DOTSPACK}/bin/spack config add config:environments_root:$(pwd)/spack_environments
-  ${DOTSPACK}/bin/spack mirror add E4S https://cache.e4s.io
-  ${DOTSPACK}/bin/spack buildcache keys --install --trust
+  ${DOTSPACK}/spack mirror add --scope site develop-developer-tools-manylinux2014 https://binaries.spack.io/develop/develop-developer-tools-manylinux2014
+  ${DOTSPACK}/spack mirror add develop-ml-darwin-aarch64-mps https://binaries.spack.io/develop/ml-darwin-aarch64-mps
+  ${DOTSPACK}/spack buildcache keys --install --trust
 fi
 
 
@@ -69,7 +69,6 @@ source ${DOTSPACK}/share/spack/setup-env.sh
 if [ ! -d "${SPACK_MANAGER}" ]; then
   git clone https://github.com/sandialabs/spack-manager ${SPACK_MANAGER}
   cd ${SPACK_MANAGER}
-  git checkout develop
   cmd "./install.py --scope site"
   cd ${TOPDIR}
   cmd "spack manager add ${TOPDIR}"
@@ -84,7 +83,9 @@ cd spack_environments
 envs=(*)
 for env in "${envs[@]}"
 do
+  echo "Setting up env $env"
   cmd "spack manager create-env -y $env/spack.yaml -n $env"
+  cmd "spack -e $env buildcache keys --install --trust"
   cmd "spack -e $env install"
 done
 cd ${idir}
