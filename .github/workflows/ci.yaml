@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push: 
+    branches:
+      - main
+  pull_requests:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+  - cron: "0 8 * * *"
+
+concurrency:
+  group: ci-${{github.ref}}-${{github.event.pull_request.number || github.run_number}}
+  cancel-in-progress: true
+
+jobs:
+  build-out-stack:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [darwin-latest, ubuntu-latest]
+      runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+    - name: Install
+      run: |
+        ./install.sh
+
