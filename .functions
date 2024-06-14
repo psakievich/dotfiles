@@ -38,5 +38,31 @@ function gtw(){
 }
 
 function git_branch_prune(){
-    git branch | grep -v "$1" | xargs git branch -D
+  git branch | grep -v "$1" | xargs git branch -D
+}
+
+remove_path() {
+    local path_to_remove="$1"
+
+    export PATH=$(echo $PATH | sed -e "s;:$path_to_remove;;" -e "s;$path_to_remove:;;" -e "s;$path_to_remove;;")
+}
+
+function load_core(){
+  core_path=${HOME}/bin/spack-core/bin
+  export PATH=${core_path}:${PATH}
+}
+
+function unload_core(){
+  core_path=${HOME}/bin/spack-core/bin
+  remove_path "${core_path}"
+}
+
+function load_editor(){
+  editor_path=${HOME}/bin/spack-editor/bin
+  export PATH=${editor_path}:${PATH}
+}
+
+function unload_editor(){
+  editor_path=${HOME}/bin/spack-editor/bin
+  remove_path "${editor_path}"
 }

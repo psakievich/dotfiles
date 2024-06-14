@@ -1,3 +1,1 @@
 alias sspack=${HOME}/dotfiles/dotfiles-spack/bin/spack
-alias nvim=${HOME}/bin/spack-editor/bin/nvim
-
