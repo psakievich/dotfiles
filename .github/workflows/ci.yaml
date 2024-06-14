@@ -29,4 +29,6 @@ jobs:
     - name: Install
       run: |
         ./install.sh
+        load_editor
+        which nvim
 

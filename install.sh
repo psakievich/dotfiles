@@ -43,11 +43,11 @@ export SPACK_DISABLE_LOCAL_CONFIG=1
 
 # clone spack and activate it
 if [ ! -d "${DOTSPACK}" ]; then
-  git clone -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}
-  ${DOTSPACK}/bin/spack bootstrap now
-  ${DOTSPACK}/spack mirror add --scope site develop-developer-tools-manylinux2014 https://binaries.spack.io/develop/develop-developer-tools-manylinux2014
-  ${DOTSPACK}/spack mirror add develop-ml-darwin-aarch64-mps https://binaries.spack.io/develop/ml-darwin-aarch64-mps
-  ${DOTSPACK}/spack buildcache keys --install --trust
+  cmd "git clone -c feature.manyFiles=true https://github.com/spack/spack.git ${DOTSPACK}"
+  cmd "${DOTSPACK}/bin/spack bootstrap now"
+  cmd "${DOTSPACK}/bin/spack mirror add --scope site develop-developer-tools-manylinux2014 https://binaries.spack.io/develop/develop-developer-tools-manylinux2014"
+  cmd "${DOTSPACK}/bin/spack mirror add --scope site develop-ml-darwin-aarch64-mps https://binaries.spack.io/develop/ml-darwin-aarch64-mps"
+  cmd "${DOTSPACK}/bin/spack buildcache keys --install --trust"
 fi
 
 
@@ -86,7 +86,7 @@ do
   echo "Setting up env $env"
   cmd "spack manager create-env -y $env/spack.yaml -n $env"
   cmd "spack -e $env buildcache keys --install --trust"
-  cmd "spack -e $env install"
+  cmd "spack -e $env install --cache-only"
 done
 cd ${idir}
   
