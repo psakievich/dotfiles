@@ -13,7 +13,9 @@ do
     filename=$(basename "$file")
     if [[ "$filename" == "."* ]]; then
       # delete it if it is there (rm stale links)
-      rm "${HOME}/$filename"
+      if [ -f "${HOME}/$filename" ]; then
+	rm "${HOME}/$filename"
+      fi
       ln -s "$(pwd)/$file" "${HOME}/$filename"
       echo "Created Link: ${HOME}/$filename"
     fi
@@ -86,6 +88,7 @@ do
   echo "Setting up env $env"
   cmd "spack manager create-env -y $env/spack.yaml -n $env"
   cmd "spack -e $env buildcache keys --install --trust"
+  cmd "spack -e $env concretize -f"
   cmd "spack -e $env install --cache-only"
 done
 cd ${idir}
