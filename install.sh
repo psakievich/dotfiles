@@ -93,6 +93,7 @@ do
 done
 cd ${idir}
   
+load_editor
 # install tmux plugins
 ~/.tmux/plugins/tpm/scripts/update_plugin.sh
 # neovim packages via packer for now
