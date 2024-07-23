@@ -1,0 +1,6 @@
+externals:
+  - python
+  - openssl
+  - curl
+  - tar
+  - perl

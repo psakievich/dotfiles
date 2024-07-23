@@ -1,3 +1,3 @@
 #!/bin/sh
 
-open -a "Terminal" ${HOME}/bin/dotfiles-bin/notetaker
+open -a "iterm" ${HOME}/bin/dotfiles-bin/notetaker
