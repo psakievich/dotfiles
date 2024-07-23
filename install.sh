@@ -1,5 +1,25 @@
 #!/bin/bash -l
 #
+create_symlinks() {
+    local current_source_dir=$1
+    local current_target_dir=$2
+
+    # Create the target directory if it doesn't exist
+    mkdir -p "$current_target_dir"
+
+    # Iterate over all items in the current source directory
+    for item in "$current_source_dir"/*; do
+        if [ -d "$item" ]; then
+            # If the item is a directory, recurse into it
+            local subdir_name=$(basename "$item")
+            create_symlinks "$item" "$current_target_dir/$subdir_name"
+        elif [ -f "$item" ]; then
+            # If the item is a file, create a symlink in the target directory
+            local filename=$(basename "$item")
+            ln -s "$item" "$current_target_dir/$filename"
+        fi
+    done
+}
 
 # Symlink dot-prefixed files
 for file in .*
@@ -43,15 +63,8 @@ if [ ! -d "${DOTSPACK}" ]; then
   ${DOTSPACK}/bin/spack buildcache keys --install --trust
 fi
 
-# links for nvim files
-for file in "$(pwd)"/nvim/*
-do
-  if [ -f "$file" ]; then
-    filename=$(basename "$file")
-    ln -s "$file" "${HOME}/.config/nvim/$filename"
-    echo "Created Link: ${HOME}/.config/nvim/$filename"
-  fi
-done
+# copy for nvim files
+create_symlinks "$(pwd)/nvim/" "${HOME}/.config/nvim"
 
 # utilize all the work from above in the shell going forward
 source ${HOME}/.bash_profile
@@ -69,8 +82,3 @@ cd ${idir}
   
 # install tmux plugins
 ~/.tmux/plugins/tpm/scripts/update_plugin.sh
-# neovim packages via packer for now
-nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
-# Update syntax parsing for languages from TreeSitter
-nvim --headless -c "TSInstallSync maintained" -c q
-
