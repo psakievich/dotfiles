@@ -44,13 +44,12 @@ if [ ! -d "${DOTSPACK}" ]; then
 fi
 
 # links for nvim files
-ln -s $(pwd)/vim/init.vim ${HOME}/.config/nvim/init.vim
-for file in "$(pwd)"/vim/lua/*
+for file in "$(pwd)"/nvim/*
 do
   if [ -f "$file" ]; then
     filename=$(basename "$file")
-    ln -s "$file" "${HOME}/.config/nvim/lua/$filename"
-    echo "Created Link: ${HOME}/.config/nvim/lua/$filename"
+    ln -s "$file" "${HOME}/.config/nvim/$filename"
+    echo "Created Link: ${HOME}/.config/nvim/$filename"
   fi
 done
 
