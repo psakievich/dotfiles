@@ -1,0 +1,4 @@
+mirrors:
+  develop-developer-tools-darwin: https://binaries.spack.io/develop/developer-tools-darwin
+  develop-ml-darwin-aarch64-mps: https://binaries.spack.io/develop/ml-darwin-aarch64-mps
+  develop-bootstrap-aarch64-darwin: https://binaries.spack.io/develop/bootstrap-aarch64-darwin

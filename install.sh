@@ -10,23 +10,27 @@
 # directories
 mkdir -p ${HOME}/soft
 
-# TODO not sure I like this
-DOTSPACK=$(pwd)/spack
-SPACK=${DOTSPACK}/bin/spack
+git submodule update --init --recursive
+
+source spack/share/spack/setup-env.sh
 export SPACK_DISABLE_LOCAL_CONFIG=1
 
+pushd spack-manager
+./install.sh --scope site
+popd
+
 # clone spack and activate it
-${SPACK} -k bootstrap now --dev
-${SPACK} config add config:environments_root:$(pwd)/spack_environments
-${SPACK} mirror add develop-developer-tools-darwin https://binaries.spack.io/develop/developer-tools-darwin
-${SPACK} buildcache keys --install --trust
+spack mirror add develop-bootstrap-aarch64-darwin https://binaries.spack.io/develop/bootstrap-aarch64-darwin
+spack buildcache keys --install --trust
+spack -k bootstrap now --dev
 
 # create spack environments to install software
 pushd spack_environments
 envs=(*)
 for env in "${envs[@]}"
 do
-  ${SPACK} -e $env install
+  spack manager create-env --name $env --yaml $env/spack.yaml
+  spack -e $env install
 done
 popd
   

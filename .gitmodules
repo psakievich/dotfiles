@@ -4,3 +4,6 @@
 [submodule "spack"]
 	path = spack
 	url = git@github.com:spack/spack
+[submodule "spack-manager"]
+	path = spack-manager
+	url = git@github.com:sandialabs/spack-manager

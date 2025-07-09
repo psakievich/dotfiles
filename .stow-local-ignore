@@ -27,3 +27,4 @@ macOS
 \.spack-env
 spack.lock
 spack
+spack-manager
