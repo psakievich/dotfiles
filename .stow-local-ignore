@@ -24,3 +24,6 @@ _darcs
 
 bin
 macOS
+\.spack-env
+spack.lock
+spack

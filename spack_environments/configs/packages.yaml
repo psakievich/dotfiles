@@ -1,0 +1,8 @@
+packages:
+  openssl:
+    require: certs=system
+  python:
+    externals:
+    - spec: python@3.9.6
+      path: /usr/bin
+
