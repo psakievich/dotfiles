@@ -31,3 +31,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 
 -- toggle cursor line on not working
 --vim.keymap.set('n', '<leader>cu', 'set cursorline!', {desc = 'Toggle cursorline' })
+
+-- Terminal
+vim.keymap.set('t', '<Esc>', '<C-\\><C-n>', { silent = true})
+vim.keymap.set('n', '<Up>', 'i', {silent = true})

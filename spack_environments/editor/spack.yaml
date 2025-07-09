@@ -1,57 +1,21 @@
 spack:
+  include:
+  - ../configs/
   specs:
   - neovim
   - ripgrep
   - pandoc
   - py-python-lsp-server
+  - py-python-gitlab
   view:
     base:
       root: ${HOME}/bin/spack-editor
       projections:
         openssl: '{name}/{version}'
-  concretizer:
-    targets:
-      granularity: generic
   packages:
-    openssl:
-      require: certs=system
-  compilers:
-  - compiler:
-      spec: clang@=17.0.4
-      paths:
-        cc: /ascldap/users/psakiev/bin/spack-core/bin/clang
-        cxx: /ascldap/users/psakiev/bin/spack-core/bin/clang++
-        f77: null
-        fc: null
-      flags: {}
-      operating_system: rhel7
-      target: x86_64
-      modules: []
-      environment: {}
-      extra_rpaths: []
-  - compiler:
-      spec: gcc@=4.4.7
-      paths:
-        cc: /usr/bin/gcc44
-        cxx: /usr/bin/g++44
-        f77: null
-        fc: null
-      flags: {}
-      operating_system: rhel7
-      target: x86_64
-      modules: []
-      environment: {}
-      extra_rpaths: []
-  - compiler:
-      spec: gcc@=4.8.5
-      paths:
-        cc: /usr/bin/gcc
-        cxx: /usr/bin/g++
-        f77: /usr/bin/gfortran
-        fc: /usr/bin/gfortran
-      flags: {}
-      operating_system: rhel7
-      target: x86_64
-      modules: []
-      environment: {}
-      extra_rpaths: []
+    python:
+      externals:
+      - spec: python@3.12.3+bz2+crypt+ctypes+dbm+lzma+pyexpat~pythoncmd+readline+sqlite3+ssl~tkinter+uuid+zlib
+        prefix: /opt/homebrew
+      - spec: python@3.9.6+bz2+crypt+ctypes+dbm+lzma+pyexpat~pythoncmd+readline+sqlite3+ssl+tix+tkinter+uuid+zlib
+        prefix: /usr

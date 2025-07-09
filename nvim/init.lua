@@ -25,6 +25,9 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup('plugins')
 
 -- TODO move auto
+function CommentLinesContaining(str)
+    vim.cmd('g/' .. str .. '/s/^/#/')
+end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
