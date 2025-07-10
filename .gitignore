@@ -1,4 +1,5 @@
-dotfiles-spack
 .spack-env
 Makefile
 spack.lock
+spack-*
+.config/nvim/lazy-lock.json

@@ -14,7 +14,7 @@ function cdh(){
 }
 
 function sspack(){
-${HOME}/dotfiles/dotfiles-spack/bin/spack "$@"
+${DOTFILES:?}/spack/bin/spack "$@"
 }
 
 function cds(){

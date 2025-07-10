@@ -1,0 +1,4 @@
+env_vars:
+  set:
+    SPACK_USER_CACHE_PATH: .$spack/../.config/dotspack/cache
+    SPACK_USER_CONFIG_PATH: $spack/../.config/dotspack/config
