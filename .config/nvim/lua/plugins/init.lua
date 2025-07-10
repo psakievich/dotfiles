@@ -1,4 +1,6 @@
 return {
+  { "nvim-tree/nvim-web-devicons", opts = {} },
+  { 'echasnovski/mini.icons', version = false },
   -- Git related plugins
   -- 'tpope/vim-abolish (not currently using but plan to revisit)
   'tpope/vim-fugitive',
