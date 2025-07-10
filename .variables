@@ -7,10 +7,9 @@ umask u=rwx,go=rx
 
 export SOFT_DIR=${HOME}/soft
 pushd ${DOTFILES:?}/spack-views
-views=(*)
-for view in "${views[@]}"
-do
-  export PATH=$(pwd)/$view:${PATH}
+for view in */ ; do
+  echo "Appending path for $(pwd)/${view}"
+  export PATH=$(pwd)/$view/bin:${PATH}
 done
 popd
 export EDITOR=nvim
