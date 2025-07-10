@@ -29,4 +29,4 @@ done
 popd
   
 # install tmux plugins
-.tmux/plugins/tpm/scripts/update_plugin.sh
+${DOTFILES:?}/.tmux/plugins/tpm/scripts/update_plugin.sh
