@@ -1,9 +1,9 @@
 [submodule ".tmux/plugins/tpm"]
 	path = .tmux/plugins/tpm
-	url = git@github.com:tmux-plugins/tpm.git
+	url = https://github.com/tmux-plugins/tpm.git
 [submodule "spack"]
 	path = spack
-	url = git@github.com:spack/spack
+	url = https://github.com/spack/spack
 [submodule "spack-manager"]
 	path = spack-manager
-	url = git@github.com:sandialabs/spack-manager
+	url = https://github.com/sandialabs/spack-manager
