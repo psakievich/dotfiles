@@ -1,5 +1,5 @@
 # Things that should be sourced in a .bash_profile 
-source ~/.functions
-source ~/.alias
-source ~/.variables
-
+export DOTFILES="$( cd -- "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" >/dev/null 2>&1 ; pwd -P )"
+source ${DOTFILES:-}/.functions
+source ${DOTFILES:-}/.alias
+source ${DOTFILES:-}/.variables

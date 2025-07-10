@@ -9,6 +9,7 @@
 
 # directories
 mkdir -p ${HOME}/soft
+export DOTFILES="$( cd -- "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" >/dev/null 2>&1 ; pwd -P )"
 
 git submodule update --init --recursive
 
@@ -21,8 +22,9 @@ popd
 
 # clone spack and activate it
 spack mirror add develop-bootstrap-aarch64-darwin https://binaries.spack.io/develop/bootstrap-aarch64-darwin
-spack buildcache keys --install --trust
-spack -k bootstrap now --dev
+spack bootstrap now --dev
+# spack gpg init
+# spack gpg create $user ${GPG_EMAIL:?}
 
 # create spack environments to install software
 pushd spack_environments
@@ -30,7 +32,10 @@ envs=(*)
 for env in "${envs[@]}"
 do
   spack manager create-env --name $env --yaml $env/spack.yaml
+  spack -e $env buildcache keys --install --trust
   spack -e $env install
+  spack -e $env env view enable ${DOTFILES:?}/spack-views/{$env}-bin
+  spack -e $env buildcache push --unsigned ${DOTFILES:?}/spack-cache
 done
 popd
   

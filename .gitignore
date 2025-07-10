@@ -1,4 +1,4 @@
-dotfiles-spack
 .spack-env
 Makefile
 spack.lock
+spack-*
