@@ -8,7 +8,6 @@ umask u=rwx,go=rx
 export SOFT_DIR=${HOME}/soft
 pushd ${DOTFILES:?}/spack-views
 for view in */ ; do
-  echo "Appending path for $(pwd)/${view}"
   export PATH=$(pwd)/$view/bin:${PATH}
 done
 popd
