@@ -6,17 +6,18 @@ set -o vi
 umask u=rwx,go=rx
 
 export SOFT_DIR=${HOME}/soft
-pushd ${DOTFILES:?}/spack-views
+pushd ${DOTFILES:?}/spack-views > /dev/null
 for view in */ ; do
   export PATH=$(pwd)/$view/bin:${PATH}
 done
-popd
+popd > /dev/null
 export EDITOR=nvim
-# set a variable to reflect SHLVL > 1 (Ubuntu 12.04)
-if [[ $SHLVL -gt 1 ]] ; then
-    export SUBSHELL="${SUBSHELL:+$SUBSHELL}+"
-else
-    export SUBSHELL=""
+
+export DOT_ORG_PS1=${DOT_ORG_PS1:-"${PS1}"}
+
+if [[ $SHLVL -gt 1 ]]; then
+  _ASTERISK_STACK=$(printf '%*s' "$(($SHLVL - 1))" | tr ' ' '*')
 fi
-export PS1="${SUBSHELL} ${PS1}"
+
+export PS1="${_ASTERISK_STACK} ${DOT_ORG_PS1}"
 export MYCONFIGINSTALLED=1
