@@ -25,7 +25,7 @@ for env in * ; do
   cmd "spack manager create-env --name ${env} --yaml ${env}/spack.yaml"
   # env specific buildcaches
   cmd "spack -e ${env} buildcache keys --install --trust"
-  cmd "spack -e ${env} install"
+  cmd "spack -e ${env} install --reuse"
   # view for local bin's
   cmd "spack -e ${env} env view enable ${DOTFILES:?}/spack-views/${env}-bin"
   # back up in buildcache

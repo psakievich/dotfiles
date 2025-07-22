@@ -1,23 +1,9 @@
 # Comments and blank lines are allowed.
 
-RCS
-.+,v
-
-CVS
-\.\#.+       # CVS conflict files / emacs lock files
-\.cvsignore
-
-\.svn
-_darcs
-\.hg
-
 \.git
 \.gitignore
 \.gitmodules
 \.github
-
-.+~          # emacs backup files
-\#.*\#       # emacs autosave files
 
 ^/README.*
 ^/LICENSE.*
@@ -29,3 +15,15 @@ macOS
 spack.lock
 spack
 spack-*
+
+install.sh
+__pycache__
+Makefile
+dot-manager
+dotfiles-spack
+commit.sh
+spack-cache
+spack-manager
+spack-views
+spack_environments
+vim
