@@ -1,5 +1,6 @@
 .spack-env
-Makefile
+*/*/Makefile
 spack.lock
 spack-*
 .config/nvim/lazy-lock.json
+*.swp
