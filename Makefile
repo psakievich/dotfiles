@@ -2,17 +2,25 @@
 .PHONY: all clean wipe
 
 SPACK_ROOT ?= spack
+
 SPACK := $(SPACK_ROOT)/bin/spack
-ENV_PREFIX := $(SPACK_ROOT)/var/spack/environments MANAGER_CONFIG := $(SPACK_ROOT)/etc/spack/config.yaml
+ENV_PREFIX := $(SPACK_ROOT)/var/spack/environments
+MANAGER_CONFIG := $(SPACK_ROOT)/etc/spack/config.yaml
 
 ENVS := core editor graphviz
 
 .PRECIOUS: $(ENV_PREFIX)/%/spack.yaml $(ENV_PREFIX)/%/spack.lock
 
 all: $(ENVS)
+clean:
+	$(info does nothing right now)
+
+stow: core
+	$(SPACK) -e $(<) build-env stow -- stow --target $(HOME) .
 
 $(ENVS): %: $(ENV_PREFIX)/%/spack.lock
-	$(SPACK) -e $(*) install
+	$(SPACK) -e $(*) install --reuse
+	$(SPACK) -e $(*) env view enable $(PWD)/spack-views/$(*)-bin
 
 $(ENV_PREFIX)/%/spack.lock: $(ENV_PREFIX)/%/spack.yaml
 	$(SPACK) -e $(*) concretize
@@ -25,9 +33,9 @@ $(MANAGER_CONFIG): spack-manager/spack-manager.yaml
 	$(SPACK) config --scope spack add "config:extensions:[$(PWD)/spack-manager]"
 	$(SPACK) manager add dot-manager
 
-clean:
-	rm  *.mk
+clean-%:
+	$(SPACK) env rm -y $(*)
 
 wipe:
-	rm -rf $(ENV_PREFIX) *.mk
+	rm -rf $(ENV_PREFIX)
 

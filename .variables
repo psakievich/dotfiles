@@ -1,11 +1,3 @@
-# fix annoying completion issue in rhel7
-shopt -u progcomp
-set -o vi
-
-# file permissions
-umask u=rwx,go=rx
-
-export SOFT_DIR=${HOME}/soft
 pushd ${DOTFILES:?}/spack-views > /dev/null
 for view in */ ; do
   export PATH=$(pwd)/$view/bin:${PATH}
@@ -21,3 +13,5 @@ fi
 
 export PS1="${_ASTERISK_STACK} ${DOT_ORG_PS1}"
 export MYCONFIGINSTALLED=1
+export XDG_CONFIG_HOME=${DOTFILES:?}/.config
+export XDG_DATA_HOME=${DOTFILES:?}/.data
