@@ -1,8 +1,5 @@
 spack:
   specs:
-  - cmake
-  - git   # dev life
   - tmux  # dev life
-  - llvm  # clangd
-  - stow  # dotfile manager
-  - gmake # makejob server
+  - stow@2.4.1  # dotfile manager
+  - python@3.13 +optimizations

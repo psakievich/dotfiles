@@ -4,3 +4,4 @@ spack.lock
 spack-*
 .config/nvim/lazy-lock.json
 *.swp
+*.data
