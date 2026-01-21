@@ -4,6 +4,10 @@
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
+vim.o.shiftwidth = 2
+vim.o.tabstop = 2
+vim.o.expandtab = true
+
 vim.o.swapfile = false
 vim.o.mouse = 'a'
 vim.o.undofile = true
@@ -26,6 +30,9 @@ vim.o.completeopt = "fuzzy,menuone,preview"
 
 vim.cmd.colorscheme("industry")
 
+vim.keymap.set("n", "<Leader>ev", "<cmd>edit $MYVIMRC<CR>", { desc = "Edit Neovim config" })
+vim.keymap.set("n", "<Leader>w", ":w<CR>", {desc = "Save file quickly", noremap=true})
+
 -- hooks for switching modes from personal dev to pairing and back
 develop_mode = function()
   vim.wo.relativenumber = true
@@ -42,3 +49,12 @@ pairing_mode = function()
   vim.o.hlsearch = true
 end
 vim.api.nvim_create_user_command("PairMode", "lua pairing_mode()", {})
+
+-- Language specific abbreviations
+local function markdown_abbrevs()
+  vim.keymap.set("i", "iitem", "- [ ] ", {buffer=0, noremap=true})
+end
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'markdown',
+  callback = markdown_abbrevs,
+})
