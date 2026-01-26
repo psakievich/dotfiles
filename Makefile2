@@ -1,0 +1,38 @@
+# Can we make a meta Makefile for chaining spack environments together?
+# What is good, what is bad etc
+# assume a local clone of spack if it's not sourced
+SPACK_ROOT ?= spack
+SPACK := $(SPACK_ROOT)/bin/spack
+SPACK_ENV_ROOT ?= ${SPACK}/var/spack/environments
+TEMPLATE_ROOT ?= $(CURDIR)/spack_environments/
+
+# spack environment name, todo to get from directory
+ENV = test
+SPECS = python ripgrep
+DEP_ENVS = core sig
+TEMPLATE_PATH := $(TEMPLATE_ROOT)/$(ENV)
+ENV_ROOT := $(SPACK_ENV_ROOT)/$(ENV)
+# if these are create a rule for including concrete environments
+INC_ENVS ?= ""
+
+spack-views/$(ENV): $(ENV)
+	$(SPACK) -e $(ENV) env view enable spack-views/$(ENV)-bin
+
+$(ENV): $(ENV_ROOT)/spack.lock
+	$(SPACK) -e $(ENV) install
+	touch $(ENV)
+
+$(ENV_ROOT)/spack.lock: $(ENV_ROOT)/spack.yaml $(DEP_ENVS)
+	$(SPACK) -e $(ENV) concretize --force
+# Rules for a basic spack environment
+# create/update spack.yaml
+$(ENV_ROOT)/spack.yaml: $(TEMPLATE_PATH)/specs.yaml $(TEMPLATE_PATH)/include.yaml
+	$(SPACK) env activate --create $(ENV) # allows create or activate 
+	$(SPACK) -e $(ENV) add $(SPECS)
+
+# create/update spack.lock
+# install
+# populate view
+# (?) install into view via uv/pip
+# (?) spack external find vu/pip
+# populate cache (optional)

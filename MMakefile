@@ -1,0 +1,16 @@
+ENVS += $(shell ls spack_environments) 
+SPACK_ROOT := spack
+
+.PHONY: all
+
+all: $(ENVS)
+
+editor: core
+
+graphviz: editor
+
+$(ENVS): %:
+	echo "All envs $(ENVS)"
+	echo $(*)
+
+$(warning inside include $(ENVS))
