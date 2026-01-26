@@ -8,26 +8,23 @@ ENVS ?= $(MUTATE_ENVS)
 
 .PRECIOUS: $(SPACK_ENV_ROOT)/%/spack.yaml $(SPACK_ENV_ROOT)/%/spack.lock
 
-$(ENVS): %: $(SPACK_ENV_ROOT)/%/spack.lock
+define root-list-variables
+	$1_ROOTS = $(TEMPLATE_ROOT)/$1/roots
+endef
+
+$(foreach ME, $(MUTATE_ENVS), $(eval $(call root-list-variables,$(ME))))
+
+ROOT_FILES := $(foreach ME, $(MUTATE_ENVS), $(TEMPLATE_ROOT)/$(ME)/roots)
+LOCK_FILES := $(foreach ME, $(MUTATE_ENVS), $(SPACK_ENV_ROOT)/$(ME)/spack.lock)
+
+$(ENVS): %: $(SPACK_ENV_ROOT)/%/spack.lock $(SPACK_ENV_ROOT)/%/spack.yaml
 	$(SPACK) -e $(*) install
 
-$(SPACK_ENV_ROOT)/%/spack.lock: $(SPACK_ENV_ROOT)/%/spack.yaml #%-mutate
+$(filter $(SPACK_ENV_ROOT)/%/spack.lock, $(LOCK_FILES)): $(SPACK_ENV_ROOT)/%/spack.lock: $(TEMPLATE_ROOT)/%/roots
 	$(SPACK) -e $(*) concretize --force
 
-# roots needs to exist to call this, so does spack.yaml
-# but if roots doesn't exist we don't want to call it
-# define CREATE_MUTATE_RULE
-# if $(wildcard $(TEMPLATE_ROOT)/$1)
-# $1-mutate: $(TEMPLATE_ROOT)/$1/roots $(SPACK_ENV_ROOT)/$1/spack.yaml
-# 	$(SPACK) -e $1 add $(shell cat $(<))
-# 	touch $1-mutate
-# else
-# $1-mutate: $(SPACK_ENV_ROOT)/$(1)/spack.yaml
-# 	touch $1-mutate
-# endif
-# endef
-
-# $(foreach e, $(ENV), $(eval $(call CREATE_MUTATE_RULE, $(e)))) 
+$(filter $(TEMPLATE_ROOT)/%/roots, $(ROOT_FILES)): $(TEMPLATE_ROOT)/%/roots: $(SPACK_ENV_ROOT)/%/spack.yaml
+	$(SPACK) -e $(*) add $(shell cat $(@))
 
 # create an envionment
 $(SPACK_ENV_ROOT)/%/spack.yaml:
