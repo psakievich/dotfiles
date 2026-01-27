@@ -1,41 +1,16 @@
+# An example of including a machine specific environment as precursor to the builtin ones
+# First define the name of the environment you intend to pre-include and the other envs
+# You wish to include
+EXTERNAL_ENV := base
+ENVS = core editor $(EXTERNAL_ENV)
 
-.PHONY: all clean wipe
+# Optionally point to a different spack installation
+# SPACK_ROOT = /some/local/path
 
-SPACK_ROOT ?= spack
+# Include the make file that builds everything else
+include internal.mk
 
-SPACK := $(SPACK_ROOT)/bin/spack
-ENV_PREFIX := $(SPACK_ROOT)/var/spack/environments
-MANAGER_CONFIG := $(SPACK_ROOT)/etc/spack/config.yaml
-
-ENVS := core editor graphviz
-
-.PRECIOUS: $(ENV_PREFIX)/%/spack.yaml $(ENV_PREFIX)/%/spack.lock
-
-all: $(ENVS)
-clean:
-	$(info does nothing right now)
-
-stow: core
-	$(SPACK) -e $(<) build-env stow -- stow --target $(HOME) .
-
-$(ENVS): %: $(ENV_PREFIX)/%/spack.lock
-	$(SPACK) -e $(*) install --reuse
-	$(SPACK) -e $(*) env view enable $(PWD)/spack-views/$(*)-bin
-
-$(ENV_PREFIX)/%/spack.lock: $(ENV_PREFIX)/%/spack.yaml
-	$(SPACK) -e $(*) concretize
-
-$(ENV_PREFIX)/%/spack.yaml: spack_environments/%/spack.yaml $(MANAGER_CONFIG)
-	$(SPACK) manager create-env --name $(*) --yaml $(<) 
-	$(SPACK) -e $(*) buildcache keys --install --trust
-
-$(MANAGER_CONFIG): spack-manager/spack-manager.yaml
-	$(SPACK) config --scope spack add "config:extensions:[$(PWD)/spack-manager]"
-	$(SPACK) manager add dot-manager
-
-clean-%:
-	$(SPACK) env rm -y $(*)
-
-wipe:
-	rm -rf $(ENV_PREFIX)
-
+# Define dependency rules for the other environments relative to the machine specific case
+core: $(EXTERNAL_ENV)
+editor: $(EXTERNAL_ENV) core
+graphviz: $(EXTERNAL_ENV) core editor
