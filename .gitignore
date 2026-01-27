@@ -5,3 +5,4 @@ spack-*
 .config/nvim/lazy-lock.json
 *.swp
 *.data
+__pycache__
