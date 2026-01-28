@@ -12,10 +12,11 @@ TEMPLATE_ROOT ?= spack_environments
 MANAGED_ENVS ?= $(shell ls $(TEMPLATE_ROOT))
 MANAGED_YAML := $(foreach ME, $(MANAGED_ENVS), $(SPACK_ENV_ROOT)/$(ME)/spack.yaml)
 ENVS ?= MANAGED_ENVS
+ENV_TARGETS = $(foreach E, $(ENVS), $(SPACK_ENV_ROOT)/$(E)/last_build)
 
 .PRECIOUS: $(SPACK_ENV_ROOT)/%/spack.yaml $(SPACK_ENV_ROOT)/%/spack.lock
 
-.PHONY: all clean
+.PHONY: all clean $(ENVS)
 
 all: $(ENVS)
 clean:
@@ -24,9 +25,13 @@ clean:
 stow: core
 	$(SPACK) -e $(<) build-env stow -- stow --target $(HOME) .
 
-$(ENVS): %: $(SPACK_ENV_ROOT)/%/spack.lock
+$(ENVS): %: $(SPACK_ENV_ROOT)/%/last_build
+	$(info $(*) installed)
+
+$(ENV_TARGETS): $(SPACK_ENV_ROOT)/%/last_build: $(SPACK_ENV_ROOT)/%/spack.lock
 	$(SPACK) -e $(*) install --reuse
 	$(SPACK) -e $(*) env view enable $(PWD)/spack-views/$(*)-bin
+	touch $(SPACK_ENV_ROOT)/$(*)/last_build
 
 $(SPACK_ENV_ROOT)/%/spack.lock: $(SPACK_ENV_ROOT)/%/spack.yaml
 	$(SPACK) -e $(*) concretize
