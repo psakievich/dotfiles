@@ -6,3 +6,6 @@ spack-*
 *.swp
 *.data
 __pycache__
+.config/uv
+bin/env*
+bin/uv*
