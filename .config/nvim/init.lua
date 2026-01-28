@@ -19,6 +19,7 @@ require('mini.deps').setup({ path = { package = path_package } })
 -- startup and are optional.
 local add, now, later = MiniDeps.add, MiniDeps.now, MiniDeps.later
 
+tslangs = { 'bash', 'cmake', 'make', 'markdown', 'lua', 'git_config', 'gitignore', 'c', 'cpp', 'python' }
 later(function()
   add({
     source = 'nvim-treesitter/nvim-treesitter',
@@ -30,10 +31,15 @@ later(function()
   })
   -- Possible to immediately execute code which depends on the added plugin
   require('nvim-treesitter.configs').setup({
-    ensure_installed = { 'lua', 'vimdoc' },
+    ensure_installed = tslangs,
     highlight = { enable = true },
   })
 end)
+
+vim.api.nvim_create_autocmd('FileType', {
+	pattern = tslangs, 
+	callback = function() vim.treesitter.start() end,
+})
 
 vim.lsp.enable('pylsp')
 vim.lsp.config['pylsp'] = {

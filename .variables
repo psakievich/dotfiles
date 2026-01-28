@@ -13,5 +13,11 @@ fi
 
 export PS1="${_ASTERISK_STACK} ${DOT_ORG_PS1}"
 export MYCONFIGINSTALLED=1
-export XDG_CONFIG_HOME=${DOTFILES:?}/.config
-export XDG_DATA_HOME=${DOTFILES:?}/.data
+
+export XDG_CONFIG_HOME=${DOTFILES:-$HOME}/.config
+export XDG_DATA_HOME=${DOTFILES:-$HOME}/.local/share
+export XDG_STATE_HOME=${DOTFILES:-$HOME}/.local/state
+export XDG_CACHE_HOME=${DOTFILES:-$HOME}/.cache
+
+export SPACK_DISABLE_LOCAL_CONFIG=true
+export SPACK_USER_CONFIG_PATH=${DOTFILES:
