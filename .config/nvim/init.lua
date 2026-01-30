@@ -20,6 +20,16 @@ require('mini.deps').setup({ path = { package = path_package } })
 local add, now, later = MiniDeps.add, MiniDeps.now, MiniDeps.later
 
 tslangs = { 'bash', 'cmake', 'make', 'markdown', 'lua', 'git_config', 'gitignore', 'c', 'cpp', 'python' }
+now(function()
+  add({
+    source = 'nvim-telescope/telescope.nvim',
+    depends = { 'nvim-lua/plenary.nvim'},
+  })
+  add({
+    source = 'nvim-telescope/telescope-ui-select.nvim',
+    depends = { 'nvim-telescope/telescope.nvim'},
+  })
+end)
 later(function()
   add({
     source = 'nvim-treesitter/nvim-treesitter',
@@ -29,6 +39,10 @@ later(function()
     -- Perform action after every checkout
     hooks = { post_checkout = function() vim.cmd('TSUpdate') end },
   })
+  add({
+    source = 'neovim/nvim-lspconfig',
+  })
+
   -- Possible to immediately execute code which depends on the added plugin
   require('nvim-treesitter.configs').setup({
     ensure_installed = tslangs,
@@ -36,12 +50,45 @@ later(function()
   })
 end)
 
+-- This is your opts table
+require("telescope").setup {
+  defaults = {
+    mappings = {
+      i = {
+        ['<C-u>'] = false,
+        ['<C-d>'] = false,
+      },
+    },
+  },
+  extensions = {
+    ["ui-select"] = {
+      require("telescope.themes").get_dropdown {
+        -- even more opts
+      }
+
+      -- pseudo code / specification for writing custom displays, like the one
+      -- for "codeactions"
+      -- specific_opts = {
+      --   [kind] = {
+      --     make_indexed = function(items) -> indexed_items, width,
+      --     make_displayer = function(widths) -> displayer
+      --     make_display = function(displayer) -> function(e)
+      --     make_ordinal = function(e) -> string
+      --   },
+      --   -- for example to disable the custom builtin "codeactions" display
+      --      do the following
+      --   codeactions = false,
+      -- }
+    }
+  }
+}
+
 vim.api.nvim_create_autocmd('FileType', {
 	pattern = tslangs, 
 	callback = function() vim.treesitter.start() end,
 })
 
-vim.lsp.enable('pylsp')
+vim.lsp.enable({'pylsp', 'clangd', 'lua_ls', 'marksman'})
 vim.lsp.config['pylsp'] = {
   cmd = {'pylsp'},
   filetypes = {'python'},
@@ -118,17 +165,22 @@ vim.keymap.set("t", "<C-W>l", "<C-\\><C-n><C-w>l", {noremap=true})
 
 vim.keymap.set("n", "<Leader>lf", vim.lsp.buf.format, {desc = "Format current buffer"})
 
--- auto enter terminal mode
--- local term_augroup = vim.api.nvim_create_augroup("TermInsertModeGroup", { clear = true })
---
--- vim.api.nvim_create_autocmd({ "TermOpen", "BufEnter" }, {
---   group = term_augroup,
---   callback = function(ev)
---     if vim.opt.buftype:get() == "terminal" then
---       vim.cmd(":startinsert")
---     end
---   end,
--- })
+require("telescope").load_extension("ui-select")
+local function telescope_live_grep_open_files()
+  require('telescope.builtin').live_grep {
+    grep_open_files = true,
+    prompt_title = 'Live Grep in Open Files',
+  }
+end
+vim.keymap.set('n', '<leader>s/', telescope_live_grep_open_files, { desc = '[S]earch [/] in Open Files' })
+vim.keymap.set('n', '<leader>ss', require('telescope.builtin').builtin, { desc = '[S]earch [S]elect Telescope' })
+vim.keymap.set('n', '<leader>gf', require('telescope.builtin').git_files, { desc = 'Search [G]it [F]iles' })
+vim.keymap.set('n', '<leader>sf', require('telescope.builtin').find_files, { desc = '[S]earch [F]iles' })
+vim.keymap.set('n', '<leader>sh', require('telescope.builtin').help_tags, { desc = '[S]earch [H]elp' })
+vim.keymap.set('n', '<leader>sw', require('telescope.builtin').grep_string, { desc = '[S]earch current [W]ord' })
+vim.keymap.set('n', '<leader>sg', require('telescope.builtin').live_grep, { desc = '[S]earch by [G]rep' })
+vim.keymap.set('n', '<leader>sd', require('telescope.builtin').diagnostics, { desc = '[S]earch [D]iagnostics' })
+vim.keymap.set('n', '<leader>sr', require('telescope.builtin').resume, { desc = '[S]earch [R]esume' })
 
 --------------------------------------------------
 -- hooks for switching modes from personal dev to pairing and back
@@ -176,7 +228,7 @@ local function user_records(file_name)
   local file = records_path .. file_name
   vim.cmd("tabnew" .. file)
   -- move to end of file
-  vim.cmd(":normal Gazz")
+  vim.cmd(":normal G$zz")
 end
 
 notes = function()
