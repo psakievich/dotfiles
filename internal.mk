@@ -1,3 +1,5 @@
+_INTERNAL_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(_INTERNAL_MK_DIR)deps.mk
 
 .PHONY: all clean wipe
 
@@ -40,7 +42,7 @@ $(MANAGED_YAML): $(SPACK_ENV_ROOT)/%/spack.yaml: $(TEMPLATE_ROOT)/%/spack.yaml |
 	$(SPACK) env rm -y $(*)
 	$(SPACK) manager create-env --name $(*) --yaml $(<) 
 
-$(MANAGER_CONFIG): 
+$(MANAGER_CONFIG): | $(SPACK_DIR) $(SM_DIR)
 	$(SPACK) config --scope spack add "config:extensions:[$(PWD)/spack-manager]"
 	$(SPACK) manager add dot-manager
 

@@ -1,7 +1,9 @@
 .spack-env
 */*/Makefile
 spack.lock
+spack/
 spack-*
+.tmux/plugins/tpm/
 .config/nvim/lazy-lock.json
 *.swp
 *.data

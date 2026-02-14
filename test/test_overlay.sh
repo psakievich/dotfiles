@@ -108,5 +108,29 @@ else
   fail "example.mk has syntax errors"
 fi
 
+# ── Test 6: deps target clones dependency directories ────────────────
+DEPS_DIR="$TMPDIR_BASE/deps-test"
+mkdir -p "$DEPS_DIR/spack_environments/core"
+cat > "$DEPS_DIR/spack_environments/core/spack.yaml" <<'EOF'
+spack:
+  specs:
+  - tmux
+EOF
+
+cat > "$DEPS_DIR/Makefile" <<EOF
+DOTFILES = $DOTFILES
+SPACK_ROOT = $MOCK_SPACK_ROOT
+ENVS = core
+include \$(DOTFILES)/internal.mk
+EOF
+
+DEPS_DRY=$(make -n -C "$DEPS_DIR" deps 2>&1) || true
+
+if echo "$DEPS_DRY" | grep -q "git clone"; then
+  pass "deps target includes git clone commands"
+else
+  fail "deps target did not include git clone commands"
+fi
+
 echo ""
 echo "=== All overlay tests passed ==="

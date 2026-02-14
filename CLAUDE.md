@@ -10,7 +10,7 @@ Personal dotfiles repo using **Spack** as a package manager to vendor binaries a
 
 ### Bootstrap a fresh clone or worktree
 ```bash
-./install.sh        # init submodules, source spack, run make all
+./install.sh        # clone deps via make, source spack, run make all
 source .dotprofile   # load shell config (PATH, spack, etc.)
 stow .               # create symlinks into $HOME
 ```
@@ -75,7 +75,8 @@ Each environment gets a view at `spack-views/<env>-bin/` which is added to PATH 
 ### Neovim Config (`.config/nvim/init.lua`)
 Single-file config using mini.nvim (mini.deps) as the plugin manager. Supports multiple modes (develop, pair, blank) toggled via keymaps. LSP servers: pylsp, clangd, lua_ls, marksman.
 
-### Git Submodules
-- `spack` — the Spack package manager
+### Make-Managed Dependencies (`deps.mk`)
+Dependencies are cloned via `make deps` instead of git submodules (submodules don't work well with the bare-repo worktree workflow). Version pins and URLs are defined in `deps.mk` and can be overridden for corporate mirrors.
+- `spack` — the Spack package manager (shallow clone, pinned to `develop`)
 - `spack-manager` — Spack extension for dotfile environment management
 - `.tmux/plugins/tpm` — tmux plugin manager
