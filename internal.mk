@@ -40,7 +40,7 @@ $(MANAGED_YAML): $(SPACK_ENV_ROOT)/%/spack.yaml: $(TEMPLATE_ROOT)/%/spack.yaml |
 	$(SPACK) env rm -y $(*)
 	$(SPACK) manager create-env --name $(*) --yaml $(<) 
 
-$(MANAGER_CONFIG): spack-manager/spack-manager.yaml
+$(MANAGER_CONFIG): 
 	$(SPACK) config --scope spack add "config:extensions:[$(PWD)/spack-manager]"
 	$(SPACK) manager add dot-manager
 
