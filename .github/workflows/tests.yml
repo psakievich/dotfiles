@@ -16,12 +16,12 @@ jobs:
         os: [ubuntu-latest, macos-14]
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
     - name: Overlay Makefile test
       run: bash test/test_overlay.sh
     - name: Makefile dry-run
-      run: |
-        git submodule update --init --recursive
-        make -n all
+      run: make -n all
 
   full-build:
     if: github.event_name == 'workflow_dispatch'
@@ -32,6 +32,8 @@ jobs:
         os: [ubuntu-latest, macos-14]
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
     - name: Full install
       run: |
         ./install.sh
