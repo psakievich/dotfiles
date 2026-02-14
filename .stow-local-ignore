@@ -27,3 +27,7 @@ spack-manager
 spack-views
 spack_environments
 vim
+test
+example.mk
+internal.mk
+CLAUDE.md
