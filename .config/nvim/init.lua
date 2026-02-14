@@ -100,6 +100,18 @@ vim.lsp.config['clangd'] = {
   filetypes = { 'c', 'cpp' },
   root_markers = { '.clangd', '.clang-tidy', '.clang-format', 'compile_commands.json', 'compile_flags.txt', '.git' },
 }
+vim.lsp.config['lua_ls'] = {
+  cmd = { 'lua-language-server' },
+  filetypes = { 'lua' },
+  root_markers = { '.luarc.json', '.luarc.jsonc', '.git' },
+  settings = {
+    Lua = {
+      runtime = { version = 'LuaJIT' },
+      diagnostics = { globals = { 'vim' } },
+      workspace = { library = { vim.env.VIMRUNTIME } },
+    },
+  },
+}
 vim.lsp.config['pylsp'] = {
   cmd = {'pylsp'},
   filetypes = {'python'},
