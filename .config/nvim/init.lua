@@ -101,9 +101,14 @@ vim.lsp.config['pylsp'] = {
   root_markers = { ".git", "__init__.py"},
   plugins = {
     ruff = {
-      enabled = 'true',
-      formatEnabled = 'true'
-    }
+      enabled = true,
+      formatEnabled = true,
+    },
+    pycodestyle = { enabled = false },
+    pyflakes = { enabled = false },
+    mccabe = { enabled = false },
+    autopep8 = { enabled = false },
+    yapf = { enabled = false },
   }
 }
 ----------------------------------------
