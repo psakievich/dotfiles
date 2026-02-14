@@ -30,4 +30,5 @@ vim
 test
 example.mk
 internal.mk
+deps.mk
 CLAUDE.md

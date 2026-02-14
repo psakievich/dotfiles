@@ -25,7 +25,7 @@ DOTFILES ?= $(HOME)/dotfiles
 ENVS = corporate core editor
 
 # ── Optionally override spack installation ────────────────────────────
-# Uncomment to use a site-wide spack instead of the dotfiles submodule.
+# Uncomment to use a site-wide spack instead of the bundled spack clone.
 # SPACK_ROOT = /opt/spack
 
 # ── Pull in the build rules from the public dotfiles ──────────────────
