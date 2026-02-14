@@ -1,13 +1,37 @@
-# An example of including a machine specific environment as precursor to the builtin ones
-# First define the name of the environment you intend to pre-include and the other envs
-# You wish to include
-ENVS = test
+# Example: Corporate/site-specific overlay Makefile
+#
+# This file is a template for creating a PRIVATE repository that layers
+# additional spack environments on top of the public dotfiles.
+#
+# Usage:
+#   1. Create a private repo (e.g. ~/corporate-dotfiles/)
+#   2. Copy this file into it as "Makefile"
+#   3. Create spack_environments/<env>/spack.yaml for each corporate env
+#   4. Set DOTFILES to point at your public dotfiles clone
+#   5. Run: make all
+#
+# Directory layout:
+#   corporate-dotfiles/
+#   ├── Makefile                          (this file)
+#   └── spack_environments/
+#       └── corporate/
+#           └── spack.yaml               (corporate packages)
 
-# Optionally point to a different spack installation
-# SPACK_ROOT = /some/local/path
+# ── Path to the public dotfiles repo ──────────────────────────────────
+DOTFILES ?= $(HOME)/dotfiles
 
-# Include the make file that builds everything else
-include dotenvs.mk
+# ── Environments to build ─────────────────────────────────────────────
+# List corporate environments first, then the dotfiles ones you want.
+ENVS = corporate core editor
 
-# Define dependency rules for the other environments relative to the machine specific case
-core: test
+# ── Optionally override spack installation ────────────────────────────
+# Uncomment to use a site-wide spack instead of the dotfiles submodule.
+# SPACK_ROOT = /opt/spack
+
+# ── Pull in the build rules from the public dotfiles ──────────────────
+include $(DOTFILES)/internal.mk
+
+# ── Dependency ordering ───────────────────────────────────────────────
+# Corporate environment builds first; dotfiles environments depend on it.
+core: corporate
+editor: corporate core
