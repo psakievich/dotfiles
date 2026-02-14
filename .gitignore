@@ -11,3 +11,4 @@ __pycache__
 .cache
 bin/env*
 bin/uv*
+.config/dotspack/cache/
