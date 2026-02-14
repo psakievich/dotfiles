@@ -42,6 +42,12 @@ later(function()
   add({
     source = 'neovim/nvim-lspconfig',
   })
+  add(
+    {
+    source = "nvzone/typr",
+    depends = {"nvzone/volt"},
+}
+  )
 
   -- Possible to immediately execute code which depends on the added plugin
   require('nvim-treesitter.configs').setup({
