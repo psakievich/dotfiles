@@ -95,6 +95,11 @@ vim.api.nvim_create_autocmd('FileType', {
 })
 
 vim.lsp.enable({'pylsp', 'clangd', 'lua_ls', 'marksman'})
+vim.lsp.config['clangd'] = {
+  cmd = { 'clangd', '--background-index', '--clang-tidy', '--completion-style=detailed', '--header-insertion=never' },
+  filetypes = { 'c', 'cpp' },
+  root_markers = { '.clangd', '.clang-tidy', '.clang-format', 'compile_commands.json', 'compile_flags.txt', '.git' },
+}
 vim.lsp.config['pylsp'] = {
   cmd = {'pylsp'},
   filetypes = {'python'},
@@ -175,6 +180,7 @@ vim.keymap.set("t", "<C-W>l", "<C-\\><C-n><C-w>l", {noremap=true})
 -- vim.keymap.set("t", "<ESC>", "<C-\\><C-n>", {noremap=true})
 
 vim.keymap.set("n", "<Leader>lf", vim.lsp.buf.format, {desc = "Format current buffer"})
+vim.keymap.set("n", "<Leader>li", vim.lsp.buf.code_action, {desc = "LSP code action (includes, fixes)"})
 
 require("telescope").load_extension("ui-select")
 local function telescope_live_grep_open_files()
