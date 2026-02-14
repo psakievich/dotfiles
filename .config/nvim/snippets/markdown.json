@@ -1,0 +1,70 @@
+{
+  "item": {
+    "prefix": "item",
+    "body": "- [ ] $1",
+    "description": "Checkbox item"
+  },
+  "link": {
+    "prefix": "link",
+    "body": "[$1]($2)",
+    "description": "Markdown link"
+  },
+  "img": {
+    "prefix": "img",
+    "body": "![$1]($2)",
+    "description": "Image"
+  },
+  "bold": {
+    "prefix": "bold",
+    "body": "**$1**",
+    "description": "Bold text"
+  },
+  "italic": {
+    "prefix": "italic",
+    "body": "*$1*",
+    "description": "Italic text"
+  },
+  "code": {
+    "prefix": "code",
+    "body": "`$1`",
+    "description": "Inline code"
+  },
+  "codeblock": {
+    "prefix": "codeblock",
+    "body": [
+      "```${1:language}",
+      "$2",
+      "```"
+    ],
+    "description": "Fenced code block"
+  },
+  "table": {
+    "prefix": "table",
+    "body": [
+      "| ${1:Header1} | ${2:Header2} |",
+      "| --- | --- |",
+      "| $3 | $4 |"
+    ],
+    "description": "2-column table"
+  },
+  "h1": {
+    "prefix": "h1",
+    "body": "# $1",
+    "description": "Heading 1"
+  },
+  "h2": {
+    "prefix": "h2",
+    "body": "## $1",
+    "description": "Heading 2"
+  },
+  "h3": {
+    "prefix": "h3",
+    "body": "### $1",
+    "description": "Heading 3"
+  },
+  "h4": {
+    "prefix": "h4",
+    "body": "#### $1",
+    "description": "Heading 4"
+  }
+}
