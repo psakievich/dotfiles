@@ -54,6 +54,13 @@ later(function()
     ensure_installed = tslangs,
     highlight = { enable = true },
   })
+
+  local gen_loader = require('mini.snippets').gen_loader
+  require('mini.snippets').setup({
+    snippets = {
+      gen_loader.from_lang(),
+    },
+  })
 end)
 
 -- This is your opts table
@@ -237,19 +244,9 @@ end
 vim.api.nvim_create_user_command("BlankMode", "lua blank_mode()", {})
 
 --------------------------------------------------
--- Language specific abbreviations
-local function markdown_abbrevs()
-  vim.keymap.set("i", "iitem", "- [ ] ", {buffer=0, noremap=true})
-end
-
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'markdown',
-  callback = markdown_abbrevs,
-})
-
---------------------------------------------------
--- NOTES and other records
--- default records to $HOME since it is usually backed up
+-- Markdown & Records
+-- Snippets loaded via mini.snippets from snippets/markdown.json
+-- User commands below handle dynamic date injection
 --------------------------------------------------
 local records_path = os.getenv("RECORDS_HOME") or "${HOME}/records/"
 
