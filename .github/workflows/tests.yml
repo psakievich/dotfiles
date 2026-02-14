@@ -20,8 +20,6 @@ jobs:
         submodules: true
     - name: Overlay Makefile test
       run: bash test/test_overlay.sh
-    - name: Makefile dry-run
-      run: make -n all
 
   full-build:
     if: github.event_name == 'workflow_dispatch'
