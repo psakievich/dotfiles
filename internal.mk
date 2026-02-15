@@ -1,4 +1,5 @@
 _INTERNAL_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+.DEFAULT_GOAL := all
 include $(_INTERNAL_MK_DIR)deps.mk
 
 .PHONY: all clean wipe
