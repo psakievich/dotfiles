@@ -19,7 +19,18 @@ require('mini.deps').setup({ path = { package = path_package } })
 -- startup and are optional.
 local add, now, later = MiniDeps.add, MiniDeps.now, MiniDeps.later
 
-tslangs = { 'bash', 'cmake', 'make', 'markdown', 'lua', 'git_config', 'gitignore', 'c', 'cpp', 'python' }
+tslangs = {
+    'bash',
+    'cmake',
+    'make',
+    'markdown',
+    'lua',
+    'git_config',
+    'gitignore',
+    'c',
+    'cpp',
+    'python'
+  }
 now(function()
   add({
     source = 'nvim-telescope/telescope.nvim',
@@ -101,11 +112,29 @@ vim.api.nvim_create_autocmd('FileType', {
 	callback = function() vim.treesitter.start() end,
 })
 
-vim.lsp.enable({'pylsp', 'clangd', 'lua_ls', 'marksman'})
+vim.lsp.enable({
+    'pylsp',
+    'clangd',
+    'lua_ls',
+    'marksman'
+  })
 vim.lsp.config['clangd'] = {
-  cmd = { 'clangd', '--background-index', '--clang-tidy', '--completion-style=detailed', '--header-insertion=never' },
+  cmd = {
+    'clangd',
+    '--background-index',
+    '--clang-tidy',
+    '--completion-style=detailed',
+    '--header-insertion=never'
+  },
   filetypes = { 'c', 'cpp' },
-  root_markers = { '.clangd', '.clang-tidy', '.clang-format', 'compile_commands.json', 'compile_flags.txt', '.git' },
+  root_markers = {
+    '.clangd',
+    '.clang-tidy',
+    '.clang-format',
+    'compile_commands.json',
+    'compile_flags.txt',
+    '.git'
+  },
 }
 vim.lsp.config['lua_ls'] = {
   cmd = { 'lua-language-server' },
@@ -199,7 +228,8 @@ vim.keymap.set("t", "<C-W>l", "<C-\\><C-n><C-w>l", {noremap=true})
 -- vim.keymap.set("t", "<ESC>", "<C-\\><C-n>", {noremap=true})
 
 vim.keymap.set("n", "<Leader>lf", vim.lsp.buf.format, {desc = "Format current buffer"})
-vim.keymap.set("n", "<Leader>li", vim.lsp.buf.code_action, {desc = "LSP code action (includes, fixes)"})
+vim.keymap.set("n", "<Leader>la", vim.lsp.buf.code_action, {desc = "LSP code action (includes, fixes)"})
+vim.keymap.set("n", "<Leader>lh", vim.diagnostic.open_float, {desc = "LSP see diagnostic"})
 
 require("telescope").load_extension("ui-select")
 local function telescope_live_grep_open_files()
