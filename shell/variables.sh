@@ -1,8 +1,6 @@
-pushd ${DOTFILES:?}/spack-views > /dev/null
-for view in */ ; do
-  export PATH=$(pwd)/$view/bin:${PATH}
-done
-popd > /dev/null
+if [ -d ${DOTFILES:?}/env-src ]; then
+  source ${DOTFILES:?}/env-src/editor_load.sh
+fi
 export EDITOR=nvim
 
 export DOT_ORG_PS1=${DOT_ORG_PS1:-"${PS1}"}

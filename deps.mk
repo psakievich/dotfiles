@@ -5,25 +5,21 @@
 
 # ── Version pins ─────────────────────────────────────────────────────
 SPACK_VERSION   ?= develop
-SM_VERSION      ?= main
 TPM_VERSION     ?= master
 
 # ── Repository URLs (override for corporate mirrors) ─────────────────
 SPACK_URL       ?= https://github.com/spack/spack
-SM_URL          ?= https://github.com/sandialabs/spack-manager
 TPM_URL         ?= https://github.com/tmux-plugins/tpm.git
 
 # ── Clone paths ──────────────────────────────────────────────────────
 SPACK_DIR       ?= spack
-SM_DIR          ?= spack-manager
 TPM_DIR         ?= .tmux/plugins/tpm
 
 # ── Clone rules ──────────────────────────────────────────────────────
 $(SPACK_DIR):
 	git clone --depth 1 --branch $(SPACK_VERSION) $(SPACK_URL) $@
-
-$(SM_DIR):
-	git clone --depth 1 --branch $(SM_VERSION) $(SM_URL) $@
+	$(@)/bin/spack repo set --scope site --destination '$$spack/etc/spack-packages' builtin
+	$(@)/bin/spack bootstrap root '$$spack/etc/bootstrap'
 
 $(TPM_DIR):
 	mkdir -p $(dir $@)
@@ -32,9 +28,8 @@ $(TPM_DIR):
 # ── Phony targets ────────────────────────────────────────────────────
 .PHONY: deps update-deps
 
-deps: $(SPACK_DIR) $(SM_DIR) $(TPM_DIR)
+deps: $(SPACK_DIR) $(TPM_DIR)
 
 update-deps:
 	cd $(SPACK_DIR) && git fetch --depth 1 origin $(SPACK_VERSION) && git checkout FETCH_HEAD
-	cd $(SM_DIR) && git fetch --depth 1 origin $(SM_VERSION) && git checkout FETCH_HEAD
 	cd $(TPM_DIR) && git fetch --depth 1 origin $(TPM_VERSION) && git checkout FETCH_HEAD
