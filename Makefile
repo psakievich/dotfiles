@@ -11,8 +11,10 @@ ENVS = editor
 include internal.mk
 
 # Define dependency rules for the other environments relative to the machine specific case
-$(SPACK_ENV_ROOT)/editor/spack.yaml: $(SPACK_ENV_ROOT)/core/spack.lock $(TEMPLATE_ROOT)/editor/spack.yaml
-	[ -f $(@) ] || $(SPACK) env rm -y --force editor
+core: $(SPACK_ENV_ROOT)/core/spack.lock
+
+$(SPACK_ENV_ROOT)/editor/spack.yaml: core $(TEMPLATE_ROOT)/editor/spack.yaml
+	[ ! -f $(@) ] || $(SPACK) env rm -y --force editor
 	$(SPACK) env create --include-concrete $(word 1, $^) editor $(word 2, $^)
 
 graphviz: $(EXTERNAL_ENV) core editor
