@@ -11,11 +11,12 @@ ENV_PREFIX := $(SPACK_ROOT)/var/spack/environments
 MANAGER_CONFIG := $(SPACK_ROOT)/etc/spack/config.yaml
 SPACK_ENV_ROOT ?= $(SPACK_ROOT)/var/spack/environments
 TEMPLATE_ROOT ?= spack_environments
+ENV_OUT_DIR ?= env-src
 
 MANAGED_ENVS ?= $(shell ls $(TEMPLATE_ROOT))
 MANAGED_YAML := $(foreach ME, $(MANAGED_ENVS), $(SPACK_ENV_ROOT)/$(ME)/spack.yaml)
 ENVS ?= MANAGED_ENVS
-ENV_TARGETS = $(foreach E, $(ENVS), $(SPACK_ENV_ROOT)/$(E)/last_build)
+ENV_TARGETS ?= $(foreach E, $(ENVS), $(ENV_OUT_DIR)/$(E)_load.sh)
 
 .PRECIOUS: $(SPACK_ENV_ROOT)/%/spack.yaml $(SPACK_ENV_ROOT)/%/spack.lock
 
@@ -26,26 +27,25 @@ clean:
 	$(info does nothing right now)
 
 stow: core
-	$(SPACK) -e $(<) build-env stow -- stow --target $(HOME) .
+	$(SPACK) -e $(<) build-env stow -- stow --target $(HOME) stow-point
 
-$(ENVS): %: $(SPACK_ENV_ROOT)/%/last_build
+$(ENVS): %: $(ENV_OUT_DIR)/%_load.sh
 	$(info $(*) installed)
 
-$(ENV_TARGETS): $(SPACK_ENV_ROOT)/%/last_build: $(SPACK_ENV_ROOT)/%/spack.lock
+$(ENV_TARGETS): $(ENV_OUT_DIR)/%_load.sh: $(SPACK_ENV_ROOT)/%/spack.lock
 	$(SPACK) -e $(*) install --reuse
-	$(SPACK) -e $(*) env view enable $(PWD)/spack-views/$(*)-bin
-	touch $(SPACK_ENV_ROOT)/$(*)/last_build
+	$(SPACK) -e $(*) env view enable
+	$(SPACK) env activate --sh $(*) | grep -Ev "SPACK_ENV|alias" > $(ENV_OUT_DIR)/$(*)_load.sh
 
 $(SPACK_ENV_ROOT)/%/spack.lock: $(SPACK_ENV_ROOT)/%/spack.yaml
 	$(SPACK) -e $(*) concretize
 
-$(MANAGED_YAML): $(SPACK_ENV_ROOT)/%/spack.yaml: $(TEMPLATE_ROOT)/%/spack.yaml | $(MANAGER_CONFIG)
-	$(SPACK) env rm -y $(*)
-	$(SPACK) manager create-env --name $(*) --yaml $(<) 
+$(SPACK_ENV_ROOT)/%/spack.yaml: $(TEMPLATE_ROOT)/%/spack.yaml
+	ls $(@) && $(SPACK) env rm -y $(*)
+	$(SPACK) env create $(*) $(<) 
 
-$(MANAGER_CONFIG): | $(SPACK_DIR) $(SM_DIR)
-	$(SPACK) config --scope spack add "config:extensions:[$(PWD)/spack-manager]"
-	$(SPACK) manager add dot-manager
+$(ENV_OUT_DIR): | $(SPACK_DIR)
+	mkdir -p $(ENV_OUT_DIR)
 
 %-clean:
 	rm $($(SPACK) location -e $(*))/spack.lock
