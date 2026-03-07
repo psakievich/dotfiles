@@ -1,5 +1,5 @@
 if [ -d ${DOTFILES:?}/env-src ]; then
-  source ${DOTFILES:?}/env-src/editor_load.sh
+  source ${DOTFILES:?}/env-src/graphviz_load.sh
 fi
 export EDITOR=nvim
 

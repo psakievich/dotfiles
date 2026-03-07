@@ -2,7 +2,7 @@
 # First define the name of the environment you intend to pre-include and the other envs
 # You wish to include
 # EXTERNAL_ENV := base
-ENVS = editor
+ENVS = graphviz
 
 # Optionally point to a different spack installation
 # SPACK_ROOT = /some/local/path
@@ -12,9 +12,8 @@ include internal.mk
 
 # Define dependency rules for the other environments relative to the machine specific case
 core: $(SPACK_ENV_ROOT)/core/spack.lock
+editor: $(SPACK_ENV_ROOT)/editor/spack.lock
+graphviz: editor
 
-$(SPACK_ENV_ROOT)/editor/spack.yaml: core $(TEMPLATE_ROOT)/editor/spack.yaml
-	[ ! -f $(@) ] || $(SPACK) env rm -y --force editor
-	$(SPACK) env create --include-concrete $(word 1, $^) editor $(word 2, $^)
-
-graphviz: $(EXTERNAL_ENV) core editor
+$(eval $(call env-depends-on,editor,core))
+$(eval $(call env-depends-on,graphviz,editor))
