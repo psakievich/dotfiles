@@ -298,27 +298,29 @@ vim.api.nvim_create_user_command("FoldLSP", "lua fold_lsp()", {})
 --------------------------------------------------
 local records_path = os.getenv("RECORDS_HOME") or "${HOME}/records/"
 
-local function user_records(file_name)
+local open_cmds = { h = "split", v = "vsplit", default = "tabnew " }
+
+local function user_records(file_name, split)
   local file = records_path .. file_name
-  vim.cmd("tabnew" .. file)
-  -- move to end of file
+  local cmd = open_cmds[split] or open_cmds.default
+  vim.cmd(cmd .. " " .. file)
   vim.cmd(":normal G$zz")
 end
 
-notes = function()
-  user_records("notes.md")
-end
-vim.api.nvim_create_user_command("Notes", "lua notes()", {})
+notes = function(split) user_records("notes.md", split) end
+vim.api.nvim_create_user_command("Notes",     function(o) notes(o.args ~= "" and o.args or nil) end, { nargs = "?" })
+vim.api.nvim_create_user_command("NotesSplit",  function() notes("h") end, {})
+vim.api.nvim_create_user_command("NotesVSplit", function() notes("v") end, {})
 
-goals = function()
-  user_records("goals.md")
-end
-vim.api.nvim_create_user_command("Goals", "lua goals()", {})
+goals = function(split) user_records("goals.md", split) end
+vim.api.nvim_create_user_command("Goals",     function(o) goals(o.args ~= "" and o.args or nil) end, { nargs = "?" })
+vim.api.nvim_create_user_command("GoalsSplit",  function() goals("h") end, {})
+vim.api.nvim_create_user_command("GoalsVSplit", function() goals("v") end, {})
 
-todo = function()
-  user_records("todo.md")
-end
-vim.api.nvim_create_user_command("Todo", "lua todo()", {})
+todo = function(split) user_records("todo.md", split) end
+vim.api.nvim_create_user_command("Todo",      function(o) todo(o.args ~= "" and o.args or nil) end, { nargs = "?" })
+vim.api.nvim_create_user_command("TodoSplit",   function() todo("h") end, {})
+vim.api.nvim_create_user_command("TodoVSplit",  function() todo("v") end, {})
 
 
 vim.api.nvim_create_user_command(
