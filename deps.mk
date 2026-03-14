@@ -20,6 +20,7 @@ $(SPACK_DIR):
 	git clone --depth 1 --branch $(SPACK_VERSION) $(SPACK_URL) $@
 	$(@)/bin/spack repo set --scope site --destination '$$spack/etc/spack-packages' builtin
 	$(@)/bin/spack bootstrap root '$$spack/etc/bootstrap'
+	$(@)/bin/spack config --scope site add 'include:[$$spack/../configs]'
 
 $(TPM_DIR):
 	mkdir -p $(dir $@)
