@@ -1,4 +1,0 @@
-concretizer:
-  targets:
-    granularity: generic
-  unify: True
