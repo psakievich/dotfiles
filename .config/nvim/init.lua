@@ -274,6 +274,24 @@ end
 vim.api.nvim_create_user_command("BlankMode", "lua blank_mode()", {})
 
 --------------------------------------------------
+-- Folding
+fold_ts = function()
+  vim.wo.foldmethod = "expr"
+  vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+  vim.wo.foldenable = true
+  vim.wo.foldlevel = 99
+end
+vim.api.nvim_create_user_command("FoldTS", "lua fold_ts()", {})
+
+fold_lsp = function()
+  vim.wo.foldmethod = "expr"
+  vim.wo.foldexpr = "v:lua.vim.lsp.foldexpr()"
+  vim.wo.foldenable = true
+  vim.wo.foldlevel = 99
+end
+vim.api.nvim_create_user_command("FoldLSP", "lua fold_lsp()", {})
+
+--------------------------------------------------
 -- Markdown & Records
 -- Snippets loaded via mini.snippets from snippets/markdown.json
 -- User commands below handle dynamic date injection
