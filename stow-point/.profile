@@ -3,3 +3,4 @@ export DOTFILES="$( cd -- "$(dirname -- $(dirname -- $(realpath "${BASH_SOURCE[0
 source ${DOTFILES:-}/shell/functions.sh
 source ${DOTFILES:-}/shell/alias.sh
 source ${DOTFILES:-}/shell/variables.sh
+source ${DOTFILES:-}/shell/completions.sh

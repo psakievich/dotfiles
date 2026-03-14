@@ -8,6 +8,7 @@ spack:
   - graphviz
   - py-graphviz
   - py-pyyaml
+  - py-r2rome
   view: true
   concretizer:
     unify: true
