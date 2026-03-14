@@ -382,3 +382,57 @@ vim.api.nvim_create_user_command(
   end,
   {}
 )
+
+--------------------------------------------------
+-- AI Agents
+-- Commands: Claude, ClaudeSplit, ClaudeVSplit, etc.
+-- Configure via env vars: DOT_AGENT_CLAUDE, DOT_AGENT_CURSOR, ...
+-- Set default agent: DOT_AI_AGENT=claude
+--------------------------------------------------
+local agent_defaults = { claude = "claude", aider = "aider", cursor = "cursor" }
+
+local function get_agent_cmd(name)
+  return vim.env["DOT_AGENT_" .. name:upper()] or agent_defaults[name] or name
+end
+
+local function find_agent_buf(name)
+  for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      local ok, val = pcall(vim.api.nvim_buf_get_var, bufnr, 'agent_name')
+      if ok and val == name then return bufnr end
+    end
+  end
+end
+
+local function open_agent(name, split)
+  local existing = find_agent_buf(name)
+  if existing then
+    local win = vim.fn.bufwinid(existing)
+    if win ~= -1 then
+      vim.api.nvim_set_current_win(win)
+    else
+      if split == "h" then vim.cmd("split")
+      elseif split == "v" then vim.cmd("vsplit")
+      else vim.cmd("tabnew") end
+      vim.api.nvim_set_current_buf(existing)
+    end
+  else
+    if split == "h" then vim.cmd("split | terminal " .. get_agent_cmd(name))
+    elseif split == "v" then vim.cmd("vsplit | terminal " .. get_agent_cmd(name))
+    else vim.cmd("tabnew | terminal " .. get_agent_cmd(name)) end
+    vim.b.agent_name = name
+  end
+  vim.cmd("startinsert")
+end
+
+for name in pairs(agent_defaults) do
+  local Name = name:sub(1,1):upper() .. name:sub(2)
+  vim.api.nvim_create_user_command(Name,        function(o) open_agent(name, o.args ~= "" and o.args or nil) end, { nargs = "?" })
+  vim.api.nvim_create_user_command(Name.."Split",  function() open_agent(name, "h") end, {})
+  vim.api.nvim_create_user_command(Name.."VSplit", function() open_agent(name, "v") end, {})
+end
+
+vim.api.nvim_create_user_command("AiAgent",
+  function(o) open_agent(vim.env.DOT_AI_AGENT or "claude", o.args ~= "" and o.args or nil) end,
+  { nargs = "?" }
+)
