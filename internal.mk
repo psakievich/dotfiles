@@ -23,6 +23,9 @@ all: $(ENVS)
 clean:
 	$(info does nothing right now)
 
+unstow: | $(ENV_OUT_DIR)
+	source $$(ls -tr $(ENV_OUT_DIR)/* | tail -1) && stow --delete --target $(HOME) stow-point
+
 stow: | $(ENV_OUT_DIR)
 	source $$(ls -tr $(ENV_OUT_DIR)/* | tail -1) && stow --target $(HOME) stow-point
 
