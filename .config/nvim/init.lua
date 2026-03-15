@@ -29,7 +29,8 @@ tslangs = {
     'gitignore',
     'c',
     'cpp',
-    'python'
+    'python',
+    'yaml'
   }
 now(function()
   add({
