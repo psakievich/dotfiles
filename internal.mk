@@ -13,9 +13,6 @@ SPACK_ENV_ROOT ?= $(SPACK_ROOT)/var/spack/environments
 TEMPLATE_ROOT ?= spack_environments
 ENV_OUT_DIR ?= env-src
 
-MANAGED_ENVS ?= $(shell ls $(TEMPLATE_ROOT))
-MANAGED_YAML := $(foreach ME, $(MANAGED_ENVS), $(SPACK_ENV_ROOT)/$(ME)/spack.yaml)
-ENVS ?= MANAGED_ENVS
 ENV_TARGETS ?= $(foreach E, $(ENVS), $(ENV_OUT_DIR)/$(E)_load.sh)
 
 .PRECIOUS: $(SPACK_ENV_ROOT)/%/spack.yaml $(SPACK_ENV_ROOT)/%/spack.lock
@@ -34,7 +31,6 @@ $(ENVS): %: $(ENV_OUT_DIR)/%_load.sh
 
 $(ENV_TARGETS): $(ENV_OUT_DIR)/%_load.sh: $(SPACK_ENV_ROOT)/%/spack.lock
 	$(SPACK) -e $(*) install --reuse
-	$(SPACK) -e $(*) env view enable
 	$(SPACK) env activate --sh $(*) | grep -Ev "SPACK_ENV|alias" > $(ENV_OUT_DIR)/$(*)_load.sh
 
 $(SPACK_ENV_ROOT)/%/spack.lock: $(SPACK_ENV_ROOT)/%/spack.yaml
@@ -48,9 +44,10 @@ $(SPACK_ENV_ROOT)/%/spack.yaml: $(TEMPLATE_ROOT)/%/spack.yaml
 # Generates a spack.yaml rule that uses --include-concrete to inherit
 # concretization from a parent environment.
 define env-depends-on
-$(SPACK_ENV_ROOT)/$(1)/spack.yaml: $(2) $(TEMPLATE_ROOT)/$(1)/spack.yaml
+$(1)_prereq := $(SPACK_ENV_ROOT)/$(2)/spack.lock
+$(SPACK_ENV_ROOT)/$(1)/spack.yaml: $$($(1)_prereq) $(TEMPLATE_ROOT)/$(1)/spack.yaml
 	[ ! -f $$(@) ] || $$(SPACK) env rm -y --force $(1)
-	$$(SPACK) env create --include-concrete $$(word 1, $$^) $(1) $$(word 2, $$^)
+	$$(SPACK) env create --include-concrete $(2) $(1) $$(word 2, $$^)
 endef
 
 $(ENV_OUT_DIR): | $(SPACK_DIR)
