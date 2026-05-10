@@ -183,6 +183,8 @@ vim.o.softtabstop = 2
 vim.o.expandtab = true
 vim.o.smartindent = true
 vim.o.winborder = "rounded"
+vim.o.splitbelow = true
+vim.o.splitright = true
 
 vim.o.swapfile = false
 vim.o.mouse = 'a'
@@ -231,6 +233,7 @@ vim.keymap.set("t", "<C-W>j", "<C-\\><C-n><C-w>j", {noremap=true})
 vim.keymap.set("t", "<C-W>k", "<C-\\><C-n><C-w>k", {noremap=true})
 vim.keymap.set("t", "<C-W>h", "<C-\\><C-n><C-w>h", {noremap=true})
 vim.keymap.set("t", "<C-W>l", "<C-\\><C-n><C-w>l", {noremap=true})
+vim.keymap.set("t", "<C-Space>", "<C-\\><C-n>", {noremap=true, desc="Exit terminal mode"})
 -- vim.keymap.set("t", "<ESC>", "<C-\\><C-n>", {noremap=true})
 
 vim.keymap.set("n", "<Leader>lf", vim.lsp.buf.format, {desc = "Format current buffer"})
@@ -303,31 +306,61 @@ vim.api.nvim_create_user_command("FoldLSP", "lua fold_lsp()", {})
 -- Snippets loaded via mini.snippets from snippets/markdown.json
 -- User commands below handle dynamic date injection
 --------------------------------------------------
-local records_path = os.getenv("RECORDS_HOME") or "${HOME}/records/"
+local records_path = os.getenv("RECORDS_HOME") or "$HOME/records/"
 
-local open_cmds = { h = "split", v = "vsplit", default = "tabnew " }
+local function open_floating_buf(bufnr, title)
+  local width = math.floor(vim.o.columns * 0.85)
+  local height = math.floor(vim.o.lines * 0.85)
+  return vim.api.nvim_open_win(bufnr, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = math.floor((vim.o.lines - height) / 2),
+    col = math.floor((vim.o.columns - width) / 2),
+    border = "rounded",
+    title = title and (" " .. title .. " ") or nil,
+    title_pos = title and "center" or nil,
+  })
+end
+
+local function open_floating(file)
+  local bufnr = vim.fn.bufadd(file)
+  vim.fn.bufload(bufnr)
+  open_floating_buf(bufnr, vim.fn.fnamemodify(file, ":t"))
+end
+
+local open_cmds = { h = "split", v = "vsplit", t = "tabnew ", e = "e" }
 
 local function user_records(file_name, split)
-  local file = records_path .. file_name
-  local cmd = open_cmds[split] or open_cmds.default
-  vim.cmd(cmd .. " " .. file)
+  local file = vim.fn.expand(records_path .. file_name)
+  local cmd = open_cmds[split]
+  if cmd then
+    vim.cmd(cmd .. " " .. file)
+  else
+    open_floating(file)
+  end
   vim.cmd(":normal G$zz")
 end
 
-notes = function(split) user_records("notes.md", split) end
-vim.api.nvim_create_user_command("Notes",     function(o) notes(o.args ~= "" and o.args or nil) end, { nargs = "?" })
-vim.api.nvim_create_user_command("NotesSplit",  function() notes("h") end, {})
-vim.api.nvim_create_user_command("NotesVSplit", function() notes("v") end, {})
+local split_suffixes = { S = "h", V = "v", T = "t", E = "e" }
 
-goals = function(split) user_records("goals.md", split) end
-vim.api.nvim_create_user_command("Goals",     function(o) goals(o.args ~= "" and o.args or nil) end, { nargs = "?" })
-vim.api.nvim_create_user_command("GoalsSplit",  function() goals("h") end, {})
-vim.api.nvim_create_user_command("GoalsVSplit", function() goals("v") end, {})
+local function register_open_commands(Name, fn)
+  vim.api.nvim_create_user_command(Name, function(o) fn(o.args ~= "" and o.args or nil) end, { nargs = "?" })
+  for suffix, key in pairs(split_suffixes) do
+    vim.api.nvim_create_user_command(Name..suffix, function() fn(key) end, {})
+  end
+end
 
-todo = function(split) user_records("todo.md", split) end
-vim.api.nvim_create_user_command("Todo",      function(o) todo(o.args ~= "" and o.args or nil) end, { nargs = "?" })
-vim.api.nvim_create_user_command("TodoSplit",   function() todo("h") end, {})
-vim.api.nvim_create_user_command("TodoVSplit",  function() todo("v") end, {})
+local records = {
+  notes = "notes.md",
+  goals = "goals.md",
+  todo  = "todo.md",
+}
+
+for name, file_name in pairs(records) do
+  local Name = name:sub(1,1):upper() .. name:sub(2)
+  register_open_commands(Name, function(split) user_records(file_name, split) end)
+end
 
 
 vim.api.nvim_create_user_command(
@@ -400,55 +433,72 @@ vim.api.nvim_create_user_command(
 )
 
 --------------------------------------------------
--- AI Agents
--- Commands: Claude, ClaudeSplit, ClaudeVSplit, etc.
--- Configure via env vars: DOT_AGENT_CLAUDE, DOT_AGENT_CURSOR, ...
+-- Named Terminals (shell + AI agents)
+-- Commands: Claude, ClaudeSplit, ClaudeVSplit, ClaudeTab, ClaudeHere
+--           Shell, ShellSplit, ShellVSplit, ShellTab, ShellHere
+-- Configure via env vars: DOT_TERMINAL_CLAUDE, DOT_TERMINAL_SHELL, ...
 -- Set default agent: DOT_AI_AGENT=claude
 --------------------------------------------------
-local agent_defaults = { claude = "claude", aider = "aider", cursor = "cursor" }
+local terminals = {
+  claude = "claude",
+  aider  = "aider",
+  cursor = "cursor",
+  shell  = vim.env.SHELL or "zsh",
+}
 
-local function get_agent_cmd(name)
-  return vim.env["DOT_AGENT_" .. name:upper()] or agent_defaults[name] or name
+local function get_terminal_cmd(name)
+  return vim.env["DOT_TERMINAL_" .. name:upper()] or terminals[name] or name
 end
 
-local function find_agent_buf(name)
+local function find_terminal_buf(name)
   for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_valid(bufnr) then
-      local ok, val = pcall(vim.api.nvim_buf_get_var, bufnr, 'agent_name')
+      local ok, val = pcall(vim.api.nvim_buf_get_var, bufnr, 'terminal_name')
       if ok and val == name then return bufnr end
     end
   end
 end
 
-local function open_agent(name, split)
-  local existing = find_agent_buf(name)
+local function show_buf(split, bufnr, title)
+  if split == "h" then vim.cmd("split"); vim.api.nvim_set_current_buf(bufnr)
+  elseif split == "v" then vim.cmd("vsplit"); vim.api.nvim_set_current_buf(bufnr)
+  elseif split == "t" then vim.cmd("tabnew"); vim.api.nvim_set_current_buf(bufnr)
+  elseif split == "e" then vim.api.nvim_set_current_buf(bufnr)
+  else open_floating_buf(bufnr, title) end
+end
+
+local function open_terminal(name, split)
+  local existing = find_terminal_buf(name)
   if existing then
     local win = vim.fn.bufwinid(existing)
     if win ~= -1 then
       vim.api.nvim_set_current_win(win)
     else
-      if split == "h" then vim.cmd("split")
-      elseif split == "v" then vim.cmd("vsplit")
-      else vim.cmd("tabnew") end
-      vim.api.nvim_set_current_buf(existing)
+      show_buf(split, existing, name)
     end
   else
-    if split == "h" then vim.cmd("split | terminal " .. get_agent_cmd(name))
-    elseif split == "v" then vim.cmd("vsplit | terminal " .. get_agent_cmd(name))
-    else vim.cmd("tabnew | terminal " .. get_agent_cmd(name)) end
-    vim.b.agent_name = name
+    if split == "h" then vim.cmd("split")
+    elseif split == "v" then vim.cmd("vsplit")
+    elseif split == "t" then vim.cmd("tabnew")
+    elseif split == "e" then -- stay in current window
+    else
+      local scratch = vim.api.nvim_create_buf(false, true)
+      vim.bo[scratch].bufhidden = "wipe"
+      open_floating_buf(scratch, name)
+    end
+    vim.cmd("terminal " .. get_terminal_cmd(name))
+    vim.b.terminal_name = name
+    vim.cmd("file " .. name)
   end
   vim.cmd("startinsert")
 end
 
-for name in pairs(agent_defaults) do
+for name in pairs(terminals) do
   local Name = name:sub(1,1):upper() .. name:sub(2)
-  vim.api.nvim_create_user_command(Name,        function(o) open_agent(name, o.args ~= "" and o.args or nil) end, { nargs = "?" })
-  vim.api.nvim_create_user_command(Name.."Split",  function() open_agent(name, "h") end, {})
-  vim.api.nvim_create_user_command(Name.."VSplit", function() open_agent(name, "v") end, {})
+  register_open_commands(Name, function(split) open_terminal(name, split) end)
 end
 
 vim.api.nvim_create_user_command("AiAgent",
-  function(o) open_agent(vim.env.DOT_AI_AGENT or "claude", o.args ~= "" and o.args or nil) end,
+  function(o) open_terminal(vim.env.DOT_AI_AGENT or "claude", o.args ~= "" and o.args or nil) end,
   { nargs = "?" }
 )
