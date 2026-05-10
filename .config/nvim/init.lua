@@ -227,6 +227,15 @@ vim.keymap.set("n", "<Leader>er", "<cmd>edit $MYVIMRC<CR>", { desc = "Edit Neovi
 vim.keymap.set("n", "<Leader>sr", "<cmd>so $MYVIMRC<CR>", { desc = "Source Neovim config"})
 vim.keymap.set("n", "<Leader>w", ":w<CR>", {desc = "Save file quickly", noremap=true})
 
+-- Close floating windows with <Esc> in normal mode (telescope-style).
+-- nvim_win_get_config(0).relative is non-empty only for floating windows,
+-- so this is a no-op in regular splits/tabs.
+vim.keymap.set("n", "<Esc>", function()
+  if vim.api.nvim_win_get_config(0).relative ~= "" then
+    vim.api.nvim_win_close(0, true)
+  end
+end, { desc = "Close floating window" })
+
 -- keymaps for the terminal
 -- I like <C-W>... well not really... but also yes.
 vim.keymap.set("t", "<C-W>j", "<C-\\><C-n><C-w>j", {noremap=true})
