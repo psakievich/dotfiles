@@ -78,6 +78,11 @@ end)
 -- This is your opts table
 require("telescope").setup {
   defaults = {
+    layout_config = {
+      height = 50000,
+      width = 50000,
+      preview_width = 0.5,
+o   },
     mappings = {
       i = {
         ['<C-u>'] = false,
@@ -248,6 +253,7 @@ vim.keymap.set('n', '<leader>sw', require('telescope.builtin').grep_string, { de
 vim.keymap.set('n', '<leader>sg', require('telescope.builtin').live_grep, { desc = '[S]earch by [G]rep' })
 vim.keymap.set('n', '<leader>sd', require('telescope.builtin').diagnostics, { desc = '[S]earch [D]iagnostics' })
 vim.keymap.set('n', '<leader>sr', require('telescope.builtin').resume, { desc = '[S]earch [R]esume' })
+vim.keymap.set('n', '<leader>sb', require('telescope.builtin').buffers, { desc = '[S]earch [Bbuffers' })
 
 --------------------------------------------------
 -- hooks for switching modes from personal dev to pairing and back
@@ -341,9 +347,10 @@ vim.api.nvim_create_user_command(
 vim.keymap.set('n', '<Leader>nn', function() vim.cmd('NewNote') end, {})
 
 -- generic tool for injecting date time string blocks
-local function goals_injection(prefix, time_code)
+local function goals_injection(prefix, time_code, offset)
   vim.cmd("Goals")
-  local date_str = vim.fn.strftime(time_code)
+  local offset = offset or 0
+  local date_str = vim.fn.strftime(time_code, os.time() + offset)
   vim.api.nvim_put(
     {
       "",
@@ -351,6 +358,14 @@ local function goals_injection(prefix, time_code)
       ""
     }, "l", true, true)
 end
+
+vim.api.nvim_create_user_command(
+  "SetGoalsTomorrow",
+  function()
+    goals_injection("#### Daily Goals: ", '%Y-%m-%d (%a)', 86400)
+  end,
+  {}
+)
 
 vim.api.nvim_create_user_command(
   "SetGoalsDay",
