@@ -3,13 +3,7 @@ if [ -d ${DOTFILES:?}/env-src ]; then
 fi
 export EDITOR=nvim
 
-export DOT_ORG_PS1=${DOT_ORG_PS1:-"${PS1}"}
-
-if [[ $SHLVL -gt 1 ]]; then
-  _ASTERISK_STACK=$(printf '%*s' "$(($SHLVL - 1))" | tr ' ' '*')
-fi
-
-export PS1="${_ASTERISK_STACK} ${DOT_ORG_PS1}"
+PS1="[${SHLVL}] ${PS1}"
 export MYCONFIGINSTALLED=1
 
 export XDG_CONFIG_HOME=${DOTFILES:-$HOME}/.config
