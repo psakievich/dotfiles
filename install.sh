@@ -13,3 +13,4 @@ cmd "source ${DOTFILES:?}/spack/share/spack/setup-env.sh"
 cmd "export SPACK_DISABLE_LOCAL_CONFIG=1"
 
 cmd "make -C ${DOTFILES:?} all"
+# Testing change from working copy
