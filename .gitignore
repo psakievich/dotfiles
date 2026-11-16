@@ -16,3 +16,4 @@ bin/uv*
 .config/dotspack/cache/
 env-src
 .build
+local.mk

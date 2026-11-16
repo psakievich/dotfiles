@@ -111,3 +111,63 @@ function gtw(){
 function git_branch_prune(){
     git branch | grep -v "$1" | xargs git branch -D
 }
+
+# Launch a subshell (or run a command) without the dotfiles runtime view.
+# The child starts from an empty environment, so nothing the view added to
+# PATH, CMAKE_PREFIX_PATH, PKG_CONFIG_PATH, DYLD_*/LD_*, PYTHONPATH, ... leaks.
+function hermetic(){
+  local mode=config
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --tools) mode=tools; shift ;;
+      --bare)  mode=bare;  shift ;;
+      --) shift; break ;;
+      -h|--help)
+        cat <<'HELP'
+usage: hermetic [--tools | --bare] [--] [cmd ...]
+
+Start a subshell (or run cmd) from a clean environment without the runtime view.
+
+  (default)  dotfiles config (aliases, functions, XDG, prompt), system PATH only
+  --tools    same, plus $DOT_RUNTIME_ROOT/view/bin on PATH (nvim, rg, ...),
+             but none of the view's library/build variables
+  --bare     no dotfiles at all: system PATH and a plain bash
+
+Passed through from the parent: HOME USER LOGNAME TERM SHLVL LANG LC_ALL TMPDIR
+SSH_AUTH_SOCK DISPLAY COLORTERM DOT_BUILD_ROOT DOT_RUNTIME_ROOT, plus any
+variable names listed in DOT_HERMETIC_KEEP. The child sets DOT_HERMETIC=<mode>.
+HELP
+        return 0 ;;
+      *) break ;;
+    esac
+  done
+
+  local base_path
+  base_path=$(getconf PATH 2>/dev/null) || base_path=/usr/bin:/bin:/usr/sbin:/sbin
+  if [ "$mode" = tools ]; then
+    base_path="${DOT_RUNTIME_ROOT:?}/view/bin:${base_path}"
+  fi
+
+  local -a keep
+  keep=("HOME=${HOME}" "PATH=${base_path}" "SHLVL=${SHLVL:-1}" "DOT_HERMETIC=${mode}"
+        "BASH_SILENCE_DEPRECATION_WARNING=1")
+  local _v _val
+  for _v in $(echo USER LOGNAME TERM LANG LC_ALL TMPDIR SSH_AUTH_SOCK DISPLAY COLORTERM \
+                   DOT_BUILD_ROOT DOT_RUNTIME_ROOT ${DOT_HERMETIC_KEEP:-}); do
+    eval "_val=\${${_v}-__dot_unset__}"
+    [ "$_val" = __dot_unset__ ] || keep+=("${_v}=${_val}")
+  done
+
+  if [ "$mode" = bare ]; then
+    if [ $# -gt 0 ]; then
+      env -i "${keep[@]}" "$@"
+    else
+      env -i "${keep[@]}" bash --noprofile --norc
+    fi
+  elif [ $# -gt 0 ]; then
+    env -i "${keep[@]}" bash --noprofile --norc \
+      -c '. "$0/stow-point/.profile" && exec "$@"' "${DOTFILES:?}" "$@"
+  else
+    env -i "${keep[@]}" bash --rcfile "${DOTFILES:?}/stow-point/.profile"
+  fi
+}

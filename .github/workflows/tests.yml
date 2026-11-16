@@ -18,6 +18,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Overlay Makefile test
       run: bash test/test_overlay.sh
+    - name: Hermetic shell test
+      run: bash test/test_hermetic.sh
 
   full-build:
     if: github.event_name == 'workflow_dispatch'

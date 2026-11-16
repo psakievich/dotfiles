@@ -4,7 +4,10 @@
 export DOT_BUILD_ROOT=${DOT_BUILD_ROOT:-${DOTFILES:?}/.build}
 export DOT_RUNTIME_ROOT=${DOT_RUNTIME_ROOT:-${HOME}/.local/opt/dotfiles}
 
-if [ -f "${DOT_RUNTIME_ROOT}/load.sh" ]; then
+# DOT_HERMETIC is set by the `hermetic` function: keep the config, skip the view
+if [ -n "${DOT_HERMETIC:-}" ]; then
+  :
+elif [ -f "${DOT_RUNTIME_ROOT}/load.sh" ]; then
   source "${DOT_RUNTIME_ROOT}/load.sh"
 elif [ -f "${DOTFILES:?}/env-src/graphviz_load.sh" ]; then
   # legacy layout (pre runtime split); remove once migrated
@@ -18,7 +21,7 @@ if [[ $SHLVL -gt 1 ]]; then
   _ASTERISK_STACK=$(printf '%*s' "$(($SHLVL - 1))" | tr ' ' '*')
 fi
 
-export PS1="${_ASTERISK_STACK} ${DOT_ORG_PS1}"
+export PS1="${DOT_HERMETIC:+[hermetic:${DOT_HERMETIC}]}${_ASTERISK_STACK} ${DOT_ORG_PS1}"
 export MYCONFIGINSTALLED=1
 
 export XDG_CONFIG_HOME=${DOTFILES:-$HOME}/.config

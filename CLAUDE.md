@@ -41,6 +41,7 @@ make <env>-wipe      # remove a build environment entirely
 make wipe            # remove all build environments
 make build-wipe      # remove the whole build root (spack, build tree, buildcache)
 make runtime-wipe    # remove the installed runtime
+make runtime-gc      # uninstall runtime packages no env needs anymore
 make print-<VAR>     # print a make variable, e.g. print-DOT_BUILD_ROOT
 ```
 
@@ -50,6 +51,16 @@ After building environments the user profile can be tested without symlinking to
 bash --rcfile stow-point/.profile
 ```
 
+### Hermetic subshell (no runtime view)
+`hermetic` (in `shell/functions.sh`) starts a bash subshell, or runs a command, from an empty environment (`env -i`), so nothing the view added to PATH, CMAKE_PREFIX_PATH, PKG_CONFIG_PATH, DYLD_*/LD_*, etc. leaks in. The child sets `DOT_HERMETIC=<mode>`, which `variables.sh` uses to skip `load.sh` and tag the prompt.
+```bash
+hermetic                 # dotfiles config, system PATH only
+hermetic --tools         # also $DOT_RUNTIME_ROOT/view/bin on PATH, no other view vars
+hermetic --bare          # no dotfiles at all
+hermetic -- cmake ..     # run one command
+DOT_HERMETIC_KEEP="FOO BAR" hermetic   # pass extra variables through
+```
+
 ### Remove symlinks temporarily
 ```bash
 stow -D stow-point
@@ -57,7 +68,7 @@ stow -D stow-point
 
 ### CI
 GitHub Actions (`.github/workflows/tests.yml`) has two jobs:
-- **fast-checks**: runs `test/test_overlay.sh` on every push/PR to `main`
+- **fast-checks**: runs `test/test_overlay.sh` and `test/test_hermetic.sh` on every push/PR to `main`
 - **full-build**: manual (`workflow_dispatch`) only — runs `install.sh` with separate build/runtime roots, deletes the build root, then checks the tools still run from the runtime
 
 ## Architecture
@@ -66,19 +77,21 @@ GitHub Actions (`.github/workflows/tests.yml`) has two jobs:
 Two stages, each using its own Spack config scope from `configs/` (passed with `spack -C`; `configs/common` is shared):
 
 **Build stage** (`configs/build`, everything under `DOT_BUILD_ROOT`), per environment:
-1. **`envs/<env>/spack.yaml`** → independent env created from `spack_environments/<env>/spack.yaml` (`--include-concrete` for envs declared with `env-depends-on`)
+1. **`envs/<env>/spack.yaml`** → independent env created from `spack_environments/<env>/spack.yaml`, with `--include-concrete` for each parent declared as `<env>_PARENT = <parent(s)>` (rules generated at the end of `internal.mk`; the `env-depends-on` macro still works)
 2. **`envs/<env>/spack.lock`** → `spack concretize`
 3. **`envs/<env>/.cached`** → sentinel after `spack install` + `spack buildcache push --unsigned` into `DOT_BUILD_ROOT/buildcache`. The build install tree uses `padded_length: 128` so binaries relocate into any runtime path.
 
 **Runtime stage** (`configs/runtime`, install tree under `DOT_RUNTIME_ROOT`):
-1. A single env (`DOT_BUILD_ROOT/runtime-env`) include-concretes `RUNTIME_ENVS` (default `$(ENVS)`; included parents come along transitively), with its view at `DOT_RUNTIME_ROOT/view` and the buildcache as a mirror.
+1. A single env (`DOT_BUILD_ROOT/runtime-env`) include-concretes `RUNTIME_ENVS` (default: the leaves of `ENVS`, i.e. envs that are nobody's parent; parents come along transitively), with its view at `DOT_RUNTIME_ROOT/view` and the buildcache as a mirror.
 2. `spack install --use-buildcache only` installs only the link/run closure — build deps never reach the runtime root.
 3. **`DOT_RUNTIME_ROOT/load.sh`** is generated from `spack env activate --sh` via `lib/make_load_sh.py`, which keeps only what Spack prepended (so it does not snapshot the build shell's PATH) and drops `SPACK_*`.
 
-`shell/variables.sh` sources `$DOT_RUNTIME_ROOT/load.sh` (falling back to the legacy `env-src/graphviz_load.sh` if present). An exported `SPACK_ROOT` (e.g. from sourcing a `setup-env.sh`) is ignored by Make; override it in a Makefile or on the command line.
+`runtime-gc` passes every env in the runtime's include chain to `spack gc -e`, because `gc -e` only keeps an env's own roots and ignores `include_concrete` (passing just the runtime env would uninstall everything).
+
+`shell/variables.sh` sources `$DOT_RUNTIME_ROOT/load.sh` (unless `DOT_HERMETIC` is set) (falling back to the legacy `env-src/graphviz_load.sh` if present). An exported `SPACK_ROOT` (e.g. from sourcing a `setup-env.sh`) is ignored by Make; override it in a Makefile or on the command line.
 
 ### Machine-Specific Configuration
-`Makefile` is the user-facing entry point where you declare environments and their dependency order. `example.mk` shows how to add a machine-specific environment as a prerequisite. Shared Spack config (package repos) lives in `configs/common`; `configs/build` and `configs/runtime` hold the per-stage install locations.
+`Makefile` is the user-facing entry point where you declare environments (`ENVS`) and their include-concrete chain (`<env>_PARENT`). It `-include`s a gitignored `local.mk` first, for machine-local additions such as `ENVS += work`, `work_PARENT = graphviz`, or `DOT_BUILD_ROOT = /scratch/...`. Chain new envs onto an existing one rather than adding independent envs, so the combined runtime view has no conflicting builds of the same package. `example.mk` shows how to add a machine-specific environment as a prerequisite. Shared Spack config (package repos) lives in `configs/common`; `configs/build` and `configs/runtime` hold the per-stage install locations.
 
 ### Stow Symlink Strategy
 Only `stow-point/` is stowed into `$HOME` (via `make stow`). It contains `stow-point/.profile` which bootstraps the shell by computing `DOTFILES` (the repo root) and sourcing the `shell/` scripts directly — no other directories need to be stowed. XDG dirs (`XDG_CONFIG_HOME`, `XDG_DATA_HOME`, etc.) are pointed at `$DOTFILES` so tools like neovim find their configs in the repo without symlinks.
@@ -86,7 +99,7 @@ Only `stow-point/` is stowed into `$HOME` (via `make stow`). It contains `stow-p
 ### Shell Configuration
 - `stow-point/.profile` — entry point stowed to `~/.profile`; computes `DOTFILES` and sources the shell scripts below
 - `shell/variables.sh` — defaults `DOT_BUILD_ROOT`/`DOT_RUNTIME_ROOT`, sources `$DOT_RUNTIME_ROOT/load.sh` for PATH, sets XDG dirs, EDITOR, PS1
-- `shell/functions.sh` — utility functions (path management, spack helpers such as `sspack`/`sspack-runtime`, directory navigation)
+- `shell/functions.sh` — utility functions (path management, spack helpers such as `sspack`/`sspack-runtime`, `hermetic`, directory navigation)
 - `shell/alias.sh` — shell aliases
 - `shell/completions.sh` — zsh completion initialization and bash completion compat
 

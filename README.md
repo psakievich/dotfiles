@@ -19,6 +19,13 @@ $ bash --rcfile stow-point/.profile                    # try it in a subshell
 $ make stow                                            # link stow-point/.profile into $HOME
 ```
 
+To add tools, edit `spack_environments/<env>/spack.yaml` (or add a new env chained with
+`<env>_PARENT` in the `Makefile`, or in a gitignored `local.mk`) and run `make`. Run
+`make runtime-gc` afterwards to drop anything no longer needed.
+
+For a shell without the runtime view (e.g. to build against system tools), run
+`hermetic` (`--tools` keeps the view's `bin/`, `--bare` skips the dotfiles entirely).
+
 To temporarily remove the dotfiles you can delete the stow managed symlinks by calling
 
 ``` console

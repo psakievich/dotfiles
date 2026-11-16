@@ -1,19 +1,20 @@
-# An example of including a machine specific environment as precursor to the builtin ones
-# First define the name of the environment you intend to pre-include and the other envs
-# You wish to include
-# EXTERNAL_ENV := base
+# Top-level environments to build. Parents (below) are built automatically.
 ENVS = graphviz
+
+# Include-concrete chain: <env>_PARENT = <parent env(s)>
+# A child env reuses its parent's concretization, which keeps the combined
+# runtime view free of conflicting builds of the same package.
+editor_PARENT   = core
+graphviz_PARENT = editor
 
 # Optionally point to a different spack installation
 # SPACK_ROOT = /some/local/path
 
+# Machine-local additions (gitignored), e.g.
+#   ENVS += work
+#   work_PARENT = graphviz
+#   DOT_BUILD_ROOT = /scratch/$(USER)/dotbuild
+-include local.mk
+
 # Include the make file that builds everything else
 include internal.mk
-
-# Define dependency rules for the other environments relative to the machine specific case
-core: $(SPACK_ENV_ROOT)/core/spack.lock
-editor: $(SPACK_ENV_ROOT)/editor/spack.lock
-graphviz: editor
-
-$(eval $(call env-depends-on,editor,core))
-$(eval $(call env-depends-on,graphviz,editor))

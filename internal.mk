@@ -30,9 +30,18 @@ CONFIG_ROOT    ?= $(_INTERNAL_MK_DIR)configs
 TEMPLATE_ROOT  ?= spack_environments
 PYTHON         ?= python3
 
+# Include-concrete chain, declared as `<env>_PARENT = <parent env(s)>` before
+# this file is included. Rules are generated at the bottom of this file.
+PARENT_VARS := $(filter %_PARENT,$(.VARIABLES))
+ALL_PARENTS := $(sort $(foreach V,$(PARENT_VARS),$($(V))))
+
 # Environments whose specs end up in the runtime view. Included-concrete
-# parents come along automatically, so listing the top-level env is enough.
-RUNTIME_ENVS ?= $(ENVS)
+# parents come along transitively, so only the leaves are needed.
+RUNTIME_ENVS ?= $(filter-out $(ALL_PARENTS),$(ENVS))
+
+# RUNTIME_ENVS plus all of their (transitive) parents
+env-closure = $(foreach E,$(1),$(E) $(call env-closure,$($(E)_PARENT)))
+RUNTIME_CLOSURE = $(sort $(call env-closure,$(RUNTIME_ENVS)))
 
 # Spack config scopes reference these, and nothing should fall back to ~/.spack
 export DOT_BUILD_ROOT DOT_RUNTIME_ROOT
@@ -49,7 +58,7 @@ BUILD_SENTINELS := $(foreach E, $(ENVS), $(SPACK_ENV_ROOT)/$(E)/.cached)
 
 .PRECIOUS: $(SPACK_ENV_ROOT)/%/spack.yaml $(SPACK_ENV_ROOT)/%/spack.lock $(SPACK_ENV_ROOT)/%/.cached
 
-.PHONY: all build runtime clean wipe build-wipe runtime-wipe stow unstow $(ENVS)
+.PHONY: all build runtime runtime-gc clean wipe build-wipe runtime-wipe stow unstow $(ENVS)
 
 all: runtime
 build: $(ENVS)
@@ -78,14 +87,14 @@ $(SPACK_ENV_ROOT)/%/spack.yaml: $(TEMPLATE_ROOT)/%/spack.yaml | $(SPACK_DIR)
 	rm -rf $(SPACK_ENV_ROOT)/$(*)
 	$(SPACK_BUILD) env create -d $(SPACK_ENV_ROOT)/$(*) $(<)
 
-# Usage: $(eval $(call env-depends-on,<env>,<parent-env>))
+# Usage: $(eval $(call env-depends-on,<env>,<parent-env(s)>))
 # Generates a spack.yaml rule that uses --include-concrete to inherit
-# concretization from a parent environment.
+# concretization from parent environment(s). Prefer declaring
+# `<env>_PARENT = <parent>` instead; the rule is then generated for you.
 define env-depends-on
-$(1)_prereq := $(SPACK_ENV_ROOT)/$(2)/spack.lock
-$(SPACK_ENV_ROOT)/$(1)/spack.yaml: $$($(1)_prereq) $(TEMPLATE_ROOT)/$(1)/spack.yaml | $(SPACK_DIR)
+$(SPACK_ENV_ROOT)/$(1)/spack.yaml: $(foreach P,$(2),$(SPACK_ENV_ROOT)/$(P)/spack.lock) $(TEMPLATE_ROOT)/$(1)/spack.yaml | $(SPACK_DIR)
 	rm -rf $(SPACK_ENV_ROOT)/$(1)
-	$$(SPACK_BUILD) env create -d --include-concrete $(SPACK_ENV_ROOT)/$(2) $(SPACK_ENV_ROOT)/$(1) $$(word 2, $$^)
+	$$(SPACK_BUILD) env create -d $(foreach P,$(2),--include-concrete $(SPACK_ENV_ROOT)/$(P)) $(SPACK_ENV_ROOT)/$(1) $(TEMPLATE_ROOT)/$(1)/spack.yaml
 endef
 
 # ── Runtime stage (HOME) ─────────────────────────────────────────────
@@ -103,6 +112,14 @@ $(RUNTIME_LOAD): $(foreach E, $(RUNTIME_ENVS), $(SPACK_ENV_ROOT)/$(E)/.cached)
 	$(SPACK_RUNTIME) -e $(RUNTIME_ENV) install --use-buildcache only
 	$(SPACK_RUNTIME) env activate --sh $(RUNTIME_ENV) | $(PYTHON) $(_INTERNAL_MK_DIR)lib/make_load_sh.py > $(@).tmp
 	mv $(@).tmp $(@)
+
+# Remove runtime installs no longer needed by the runtime env (e.g. after
+# dropping a package from an env). Matters most where HOME space is tight.
+# `spack gc -e` only keeps an env's *own* roots and ignores include_concrete,
+# so the runtime env alone would protect nothing. Pass every build env in
+# the chain instead: their roots are exactly what the runtime view holds.
+runtime-gc:
+	$(SPACK_RUNTIME) gc -y $(foreach E, $(RUNTIME_CLOSURE), -e $(SPACK_ENV_ROOT)/$(E))
 
 # ── Stow ─────────────────────────────────────────────────────────────
 stow: $(RUNTIME_LOAD)
@@ -129,3 +146,6 @@ build-wipe:
 # remove the installed runtime (the shell falls back to no spack tools)
 runtime-wipe:
 	rm -rf $(DOT_RUNTIME_ROOT) $(RUNTIME_ENV)
+
+# ── Generated include-concrete rules from <env>_PARENT ───────────────
+$(foreach V,$(PARENT_VARS),$(eval $(call env-depends-on,$(V:%_PARENT=%),$($(V)))))

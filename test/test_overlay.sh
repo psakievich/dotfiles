@@ -172,5 +172,50 @@ else
   fail "load.sh generator output is not portable"
 fi
 
+# ── Test 11: <env>_PARENT generates include-concrete chains ──────────
+CHAIN_DIR="$TMPDIR_BASE/chain-test"
+for e in base mid leaf; do
+  mkdir -p "$CHAIN_DIR/spack_environments/$e"
+  printf 'spack:\n  specs:\n  - zlib\n' > "$CHAIN_DIR/spack_environments/$e/spack.yaml"
+done
+cat > "$CHAIN_DIR/Makefile" <<EOF
+DOTFILES = $DOTFILES
+SPACK_ROOT = $MOCK_SPACK_ROOT
+ENVS = mid
+mid_PARENT = base
+-include local.mk
+include \$(DOTFILES)/internal.mk
+EOF
+CHAIN_DRY=$(make -n -C "$CHAIN_DIR" all DOT_BUILD_ROOT="$TMPDIR_BASE/cb" 2>&1) || true
+if echo "$CHAIN_DRY" | grep -q -- "env create -d --include-concrete $TMPDIR_BASE/cb/envs/base $TMPDIR_BASE/cb/envs/mid" \
+   && [ "$(make -s -C "$CHAIN_DIR" print-RUNTIME_ENVS)" = "mid" ]; then
+  pass "<env>_PARENT generates include-concrete rule; runtime uses leaf env"
+else
+  echo "$CHAIN_DRY"
+  fail "<env>_PARENT chain not generated"
+fi
+
+# ── Test 12: local.mk can extend ENVS and the chain ───────────────────
+cat > "$CHAIN_DIR/local.mk" <<'EOF'
+ENVS += leaf
+leaf_PARENT = mid
+EOF
+CHAIN_DRY=$(make -n -C "$CHAIN_DIR" all DOT_BUILD_ROOT="$TMPDIR_BASE/cb" 2>&1) || true
+if echo "$CHAIN_DRY" | grep -q -- "--include-concrete $TMPDIR_BASE/cb/envs/mid $TMPDIR_BASE/cb/envs/leaf" \
+   && [ "$(make -s -C "$CHAIN_DIR" print-RUNTIME_ENVS)" = "leaf" ]; then
+  pass "local.mk extends ENVS; runtime follows the new leaf"
+else
+  fail "local.mk extension not applied"
+fi
+
+# ── Test 13: runtime-gc targets the runtime env ──────────────────────
+GC_DRY=$(make -n -C "$CHAIN_DIR" runtime-gc DOT_BUILD_ROOT="$TMPDIR_BASE/cb" 2>&1) || true
+# spack gc -e ignores include_concrete, so every env in the chain must be kept
+if echo "$GC_DRY" | grep -q "configs/runtime gc -y  *-e $TMPDIR_BASE/cb/envs/base  *-e $TMPDIR_BASE/cb/envs/leaf  *-e $TMPDIR_BASE/cb/envs/mid"; then
+  pass "runtime-gc keeps every env in the runtime include chain"
+else
+  fail "runtime-gc command wrong"
+fi
+
 echo ""
 echo "=== All overlay tests passed ==="
