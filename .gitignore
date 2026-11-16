@@ -15,3 +15,4 @@ bin/env*
 bin/uv*
 .config/dotspack/cache/
 env-src
+.build

@@ -74,8 +74,18 @@ function cdh(){
   cd ${HOME}
 }
 
+# Run the dotfiles spack with the build config scopes (DOT_BUILD_ROOT tree).
+# Use `sspack-runtime` to inspect what is installed in DOT_RUNTIME_ROOT.
 function sspack(){
-${DOTFILES:?}/spack/bin/spack "$@"
+SPACK_DISABLE_LOCAL_CONFIG=1 SPACK_USER_CACHE_PATH="${DOT_BUILD_ROOT:?}/user-cache" \
+  "${DOT_BUILD_ROOT:?}/spack/bin/spack" \
+  -C "${DOTFILES:?}/configs/common" -C "${DOTFILES:?}/configs/build" "$@"
+}
+
+function sspack-runtime(){
+SPACK_DISABLE_LOCAL_CONFIG=1 SPACK_USER_CACHE_PATH="${DOT_BUILD_ROOT:?}/user-cache" \
+  "${DOT_BUILD_ROOT:?}/spack/bin/spack" \
+  -C "${DOTFILES:?}/configs/common" -C "${DOTFILES:?}/configs/runtime" "$@"
 }
 
 function cds(){
