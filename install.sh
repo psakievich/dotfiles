@@ -1,5 +1,5 @@
 #!/bin/bash -l
-# Bootstrap: clone deps, build in DOT_BUILD_ROOT, install runtime into DOT_RUNTIME_ROOT.
+# Bootstrap: clone deps, build in DOT_BUILD_ROOT, deploy into DOT_RUNTIME_ROOT.
 #
 #   DOT_BUILD_ROOT    (default: <repo>/.build)           scratch-friendly, disposable
 #   DOT_RUNTIME_ROOT  (default: ~/.local/opt/dotfiles)   what the shell sources

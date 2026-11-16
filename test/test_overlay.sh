@@ -143,13 +143,16 @@ else
   fail "build envs/buildcache not routed to DOT_BUILD_ROOT"
 fi
 
-# ── Test 8: runtime installs from the buildcache only into DOT_RUNTIME_ROOT
+# ── Test 8: deploy installs from the buildcache only into DOT_RUNTIME_ROOT/<env>
 if echo "$SPLIT_DRY" | grep -q "install --use-buildcache only" \
-   && echo "$SPLIT_DRY" | grep -q -- "--with-view $TMPDIR_BASE/home-rt/view" \
-   && echo "$SPLIT_DRY" | grep -q "$TMPDIR_BASE/home-rt/load.sh"; then
-  pass "runtime is installed from the buildcache into DOT_RUNTIME_ROOT"
+   && echo "$SPLIT_DRY" | grep -q -- "--with-view $TMPDIR_BASE/home-rt/core/view" \
+   && echo "$SPLIT_DRY" | grep -q -- "--include-concrete $TMPDIR_BASE/scratch/envs/core $TMPDIR_BASE/scratch/deploy/core" \
+   && echo "$SPLIT_DRY" | grep -q "$TMPDIR_BASE/home-rt/core/load.sh" \
+   && echo "$SPLIT_DRY" | grep -q "printf '%s\\\\n' core > $TMPDIR_BASE/home-rt/active"; then
+  pass "deploy-core installs from the buildcache into DOT_RUNTIME_ROOT/core"
 else
-  fail "runtime stage missing or not routed to DOT_RUNTIME_ROOT"
+  echo "$SPLIT_DRY"
+  fail "deploy stage missing or not routed to DOT_RUNTIME_ROOT/<env>"
 fi
 
 # ── Test 9: build and runtime use separate config scopes ─────────────
@@ -188,8 +191,8 @@ include \$(DOTFILES)/internal.mk
 EOF
 CHAIN_DRY=$(make -n -C "$CHAIN_DIR" all DOT_BUILD_ROOT="$TMPDIR_BASE/cb" 2>&1) || true
 if echo "$CHAIN_DRY" | grep -q -- "env create -d --include-concrete $TMPDIR_BASE/cb/envs/base $TMPDIR_BASE/cb/envs/mid" \
-   && [ "$(make -s -C "$CHAIN_DIR" print-RUNTIME_ENVS)" = "mid" ]; then
-  pass "<env>_PARENT generates include-concrete rule; runtime uses leaf env"
+   && [ "$(make -s -C "$CHAIN_DIR" print-DEPLOY)" = "mid" ]; then
+  pass "<env>_PARENT generates include-concrete rule; DEPLOY defaults to leaf env"
 else
   echo "$CHAIN_DRY"
   fail "<env>_PARENT chain not generated"
@@ -202,19 +205,60 @@ leaf_PARENT = mid
 EOF
 CHAIN_DRY=$(make -n -C "$CHAIN_DIR" all DOT_BUILD_ROOT="$TMPDIR_BASE/cb" 2>&1) || true
 if echo "$CHAIN_DRY" | grep -q -- "--include-concrete $TMPDIR_BASE/cb/envs/mid $TMPDIR_BASE/cb/envs/leaf" \
-   && [ "$(make -s -C "$CHAIN_DIR" print-RUNTIME_ENVS)" = "leaf" ]; then
-  pass "local.mk extends ENVS; runtime follows the new leaf"
+   && [ "$(make -s -C "$CHAIN_DIR" print-DEPLOY)" = "leaf" ]; then
+  pass "local.mk extends ENVS; DEPLOY follows the new leaf"
 else
   fail "local.mk extension not applied"
 fi
 
-# ── Test 13: runtime-gc targets the runtime env ──────────────────────
-GC_DRY=$(make -n -C "$CHAIN_DIR" runtime-gc DOT_BUILD_ROOT="$TMPDIR_BASE/cb" 2>&1) || true
-# spack gc -e ignores include_concrete, so every env in the chain must be kept
-if echo "$GC_DRY" | grep -q "configs/runtime gc -y  *-e $TMPDIR_BASE/cb/envs/base  *-e $TMPDIR_BASE/cb/envs/leaf  *-e $TMPDIR_BASE/cb/envs/mid"; then
-  pass "runtime-gc keeps every env in the runtime include chain"
+# ── Test 13: each env deploys separately; DEPLOY sets what `all` deploys ──
+CB="$TMPDIR_BASE/cb"; CR="$TMPDIR_BASE/cr"
+DEP_DRY=$(make -n -C "$CHAIN_DIR" deploy-base deploy-mid DOT_BUILD_ROOT="$CB" DOT_RUNTIME_ROOT="$CR" 2>&1) || true
+if echo "$DEP_DRY" | grep -q -- "--with-view $CR/base/view" \
+   && echo "$DEP_DRY" | grep -q -- "--with-view $CR/mid/view" \
+   && ! echo "$DEP_DRY" | grep -q "$CR/active"; then
+  pass "deploy-<env> creates a separate view per env (and leaves active alone)"
 else
+  echo "$DEP_DRY"
+  fail "deploy-<env> views not separate"
+fi
+ALL_DRY=$(make -n -C "$CHAIN_DIR" all DEPLOY="base leaf" DOT_BUILD_ROOT="$CB" DOT_RUNTIME_ROOT="$CR" 2>&1) || true
+if echo "$ALL_DRY" | grep -q -- "--with-view $CR/base/view" \
+   && echo "$ALL_DRY" | grep -q -- "--with-view $CR/leaf/view" \
+   && ! echo "$ALL_DRY" | grep -q -- "--with-view $CR/mid/view" \
+   && echo "$ALL_DRY" | grep -q "base leaf > $CR/active"; then
+  pass "make all deploys DEPLOY and records it in active"
+else
+  echo "$ALL_DRY"
+  fail "DEPLOY not honored by make all"
+fi
+
+# ── Test 14: undeploy removes the deployment and its active entry ─────
+mkdir -p "$CR/base" "$CR/leaf"; touch "$CR/base/load.sh" "$CR/leaf/load.sh"
+printf 'base\nleaf\n' > "$CR/active"
+make -s -C "$CHAIN_DIR" undeploy-base DOT_BUILD_ROOT="$CB" DOT_RUNTIME_ROOT="$CR" >/dev/null 2>&1 || true
+if [ ! -e "$CR/base" ] && [ "$(cat "$CR/active")" = "leaf" ]; then
+  pass "undeploy-<env> removes the view and its active entry"
+else
+  fail "undeploy-<env> did not clean up"
+fi
+
+# ── Test 15: runtime-gc keeps every env in each deployment's chain ────
+# (spack gc -e ignores include_concrete, so the chain must be listed)
+GC_DRY=$(make -n -C "$CHAIN_DIR" runtime-gc DOT_BUILD_ROOT="$CB" DOT_RUNTIME_ROOT="$CR" 2>&1) || true
+if echo "$GC_DRY" | grep -q "configs/runtime gc -y  *-e $CB/envs/base  *-e $CB/envs/leaf  *-e $CB/envs/mid"; then
+  pass "runtime-gc keeps the full chain of every existing deployment"
+else
+  echo "$GC_DRY"
   fail "runtime-gc command wrong"
+fi
+rm -rf "$CR"/*
+GC_DRY=$(make -n -C "$CHAIN_DIR" runtime-gc DOT_BUILD_ROOT="$CB" DOT_RUNTIME_ROOT="$CR" 2>&1) || true
+if echo "$GC_DRY" | grep -q "nothing is deployed" && ! echo "$GC_DRY" | grep -q " gc -y"; then
+  pass "runtime-gc refuses to run with nothing deployed"
+else
+  echo "$GC_DRY"
+  fail "runtime-gc ran with nothing deployed"
 fi
 
 echo ""

@@ -8,8 +8,9 @@ _INTERNAL_MK_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/
 #   DOT_BUILD_ROOT       spack clone, build install tree, stage, caches,
 #                        build environments, buildcache. Point it at scratch
 #                        space when HOME is small; it is safe to delete.
-#   DOT_RUNTIME_ROOT     runtime-only install tree (from the buildcache), a
-#                        single view, and load.sh. This is what the shell uses.
+#   DOT_RUNTIME_ROOT     deployments: a shared runtime-only install tree
+#                        (from the buildcache) plus, per deployed env, a view
+#                        and load.sh. This is what the shell uses.
 #
 # Both can be overridden from the environment or the make command line.
 DOT_BUILD_ROOT   ?= $(_INTERNAL_MK_DIR).build
@@ -24,8 +25,8 @@ SPACK_ROOT     ?= $(DOT_BUILD_ROOT)/spack
 SPACK_DIR      ?= $(SPACK_ROOT)
 SPACK_ENV_ROOT ?= $(DOT_BUILD_ROOT)/envs
 BUILDCACHE     ?= $(DOT_BUILD_ROOT)/buildcache
-RUNTIME_ENV    ?= $(DOT_BUILD_ROOT)/runtime-env
-RUNTIME_LOAD   ?= $(DOT_RUNTIME_ROOT)/load.sh
+DEPLOY_ENV_ROOT ?= $(DOT_BUILD_ROOT)/deploy
+ACTIVE_FILE    ?= $(DOT_RUNTIME_ROOT)/active
 CONFIG_ROOT    ?= $(_INTERNAL_MK_DIR)configs
 TEMPLATE_ROOT  ?= spack_environments
 PYTHON         ?= python3
@@ -35,13 +36,17 @@ PYTHON         ?= python3
 PARENT_VARS := $(filter %_PARENT,$(.VARIABLES))
 ALL_PARENTS := $(sort $(foreach V,$(PARENT_VARS),$($(V))))
 
-# Environments whose specs end up in the runtime view. Included-concrete
-# parents come along transitively, so only the leaves are needed.
-RUNTIME_ENVS ?= $(filter-out $(ALL_PARENTS),$(ENVS))
+# Envs that `make deploy` (and `make all`) deploy, in shell load order: each
+# load.sh prepends, so later entries take precedence. A deployment contains
+# its env plus everything it include-concretes, so the leaves are enough by
+# default. Any built env can also be deployed on its own: make deploy-<env>
+DEPLOY ?= $(filter-out $(ALL_PARENTS),$(ENVS))
 
-# RUNTIME_ENVS plus all of their (transitive) parents
+# an env plus all of its (transitive) parents
 env-closure = $(foreach E,$(1),$(E) $(call env-closure,$($(E)_PARENT)))
-RUNTIME_CLOSURE = $(sort $(call env-closure,$(RUNTIME_ENVS)))
+
+# deployments that currently exist under DOT_RUNTIME_ROOT
+DEPLOYED = $(patsubst $(DOT_RUNTIME_ROOT)/%/load.sh,%,$(wildcard $(DOT_RUNTIME_ROOT)/*/load.sh))
 
 # Spack config scopes reference these, and nothing should fall back to ~/.spack
 export DOT_BUILD_ROOT DOT_RUNTIME_ROOT
@@ -56,13 +61,13 @@ SPACK_RUNTIME := $(SPACK) -C $(CONFIG_ROOT)/common -C $(CONFIG_ROOT)/runtime
 
 BUILD_SENTINELS := $(foreach E, $(ENVS), $(SPACK_ENV_ROOT)/$(E)/.cached)
 
-.PRECIOUS: $(SPACK_ENV_ROOT)/%/spack.yaml $(SPACK_ENV_ROOT)/%/spack.lock $(SPACK_ENV_ROOT)/%/.cached
+.PRECIOUS: $(SPACK_ENV_ROOT)/%/spack.yaml $(SPACK_ENV_ROOT)/%/spack.lock $(SPACK_ENV_ROOT)/%/.cached \
+	$(DOT_RUNTIME_ROOT)/%/load.sh
 
-.PHONY: all build runtime runtime-gc clean wipe build-wipe runtime-wipe stow unstow $(ENVS)
+.PHONY: all build deploy runtime-gc _runtime-gc clean wipe build-wipe runtime-wipe stow unstow $(ENVS)
 
-all: runtime
+all: build deploy
 build: $(ENVS)
-runtime: $(RUNTIME_LOAD)
 
 clean:
 	$(info does nothing right now)
@@ -97,36 +102,53 @@ $(SPACK_ENV_ROOT)/$(1)/spack.yaml: $(foreach P,$(2),$(SPACK_ENV_ROOT)/$(P)/spack
 	$$(SPACK_BUILD) env create -d $(foreach P,$(2),--include-concrete $(SPACK_ENV_ROOT)/$(P)) $(SPACK_ENV_ROOT)/$(1) $(TEMPLATE_ROOT)/$(1)/spack.yaml
 endef
 
-# ── Runtime stage (HOME) ─────────────────────────────────────────────
-# One environment that include-concretes the build envs, installs their
-# link/run closure from the buildcache only (no build deps, no compiling),
-# and keeps a single view under DOT_RUNTIME_ROOT. load.sh only references
-# the view, so DOT_BUILD_ROOT can be wiped without breaking the shell.
-$(RUNTIME_LOAD): $(foreach E, $(RUNTIME_ENVS), $(SPACK_ENV_ROOT)/$(E)/.cached)
-	rm -rf $(RUNTIME_ENV)
-	mkdir -p $(DOT_RUNTIME_ROOT)
-	$(SPACK_RUNTIME) env create -d --with-view $(DOT_RUNTIME_ROOT)/view \
-	  $(foreach E, $(RUNTIME_ENVS), --include-concrete $(SPACK_ENV_ROOT)/$(E)) $(RUNTIME_ENV)
-	$(SPACK_RUNTIME) -e $(RUNTIME_ENV) mirror add --unsigned dotbuild $(BUILDCACHE)
-	$(SPACK_RUNTIME) -e $(RUNTIME_ENV) concretize
-	$(SPACK_RUNTIME) -e $(RUNTIME_ENV) install --use-buildcache only
-	$(SPACK_RUNTIME) env activate --sh $(RUNTIME_ENV) | $(PYTHON) $(_INTERNAL_MK_DIR)lib/make_load_sh.py > $(@).tmp
+# ── Deploy stage (HOME) ──────────────────────────────────────────────
+# deploy-<env>: a small env (in the build root) that include-concretes the
+# <env> build env, installs its link/run closure from the buildcache only (no
+# build deps, no compiling) into the shared runtime install tree, and keeps
+# its own view at DOT_RUNTIME_ROOT/<env>/view. load.sh only references that
+# view, so DOT_BUILD_ROOT can be wiped without breaking the shell.
+deploy: $(foreach E, $(DEPLOY), deploy-$(E))
+	printf '%s\n' $(DEPLOY) > $(ACTIVE_FILE)
+
+deploy-%: $(DOT_RUNTIME_ROOT)/%/load.sh
+	$(info $(*) deployed to $(DOT_RUNTIME_ROOT)/$(*))
+
+$(DOT_RUNTIME_ROOT)/%/load.sh: $(SPACK_ENV_ROOT)/%/.cached
+	rm -rf $(DEPLOY_ENV_ROOT)/$(*)
+	mkdir -p $(DOT_RUNTIME_ROOT)/$(*)
+	$(SPACK_RUNTIME) env create -d --with-view $(DOT_RUNTIME_ROOT)/$(*)/view \
+	  --include-concrete $(SPACK_ENV_ROOT)/$(*) $(DEPLOY_ENV_ROOT)/$(*)
+	$(SPACK_RUNTIME) -e $(DEPLOY_ENV_ROOT)/$(*) mirror add --unsigned dotbuild $(BUILDCACHE)
+	$(SPACK_RUNTIME) -e $(DEPLOY_ENV_ROOT)/$(*) concretize
+	$(SPACK_RUNTIME) -e $(DEPLOY_ENV_ROOT)/$(*) install --use-buildcache only
+	$(SPACK_RUNTIME) env activate --sh $(DEPLOY_ENV_ROOT)/$(*) | $(PYTHON) $(_INTERNAL_MK_DIR)lib/make_load_sh.py > $(@).tmp
 	mv $(@).tmp $(@)
 
-# Remove runtime installs no longer needed by the runtime env (e.g. after
-# dropping a package from an env). Matters most where HOME space is tight.
+# Remove a deployment's view and load.sh (installs stay until runtime-gc)
+undeploy-%:
+	rm -rf $(DOT_RUNTIME_ROOT)/$(*) $(DEPLOY_ENV_ROOT)/$(*)
+	[ ! -f $(ACTIVE_FILE) ] || { grep -vx '$(*)' $(ACTIVE_FILE) > $(ACTIVE_FILE).tmp || true; mv $(ACTIVE_FILE).tmp $(ACTIVE_FILE); }
+
+# Uninstall runtime packages no current deployment needs. Re-invokes make so
+# DEPLOYED is computed fresh (e.g. after `make undeploy-x runtime-gc`).
 # `spack gc -e` only keeps an env's *own* roots and ignores include_concrete,
-# so the runtime env alone would protect nothing. Pass every build env in
-# the chain instead: their roots are exactly what the runtime view holds.
+# so the deploy envs alone would protect nothing. Pass every build env in each
+# deployment's chain instead: their roots are exactly what the views hold.
 runtime-gc:
-	$(SPACK_RUNTIME) gc -y $(foreach E, $(RUNTIME_CLOSURE), -e $(SPACK_ENV_ROOT)/$(E))
+	$(MAKE) --no-print-directory _runtime-gc
+
+_runtime-gc:
+	$(if $(DEPLOYED),,$(error nothing is deployed in $(DOT_RUNTIME_ROOT); use runtime-wipe instead))
+	$(SPACK_RUNTIME) gc -y $(foreach E, $(sort $(call env-closure,$(DEPLOYED))), -e $(SPACK_ENV_ROOT)/$(E))
 
 # ── Stow ─────────────────────────────────────────────────────────────
-stow: $(RUNTIME_LOAD)
-	. $(RUNTIME_LOAD) && stow --target $(HOME) stow-point
+# stow comes from the deployed runtime (core)
+stow: deploy
+	for d in $(DEPLOY); do . $(DOT_RUNTIME_ROOT)/$$d/load.sh; done && stow --target $(HOME) stow-point
 
-unstow: $(RUNTIME_LOAD)
-	. $(RUNTIME_LOAD) && stow --delete --target $(HOME) stow-point
+unstow:
+	for d in $(DEPLOYED); do . $(DOT_RUNTIME_ROOT)/$$d/load.sh; done && stow --delete --target $(HOME) stow-point
 
 # ── Cleanup ──────────────────────────────────────────────────────────
 %-clean:
@@ -143,9 +165,9 @@ wipe:
 build-wipe:
 	rm -rf $(DOT_BUILD_ROOT)
 
-# remove the installed runtime (the shell falls back to no spack tools)
+# remove all deployments and the runtime install tree
 runtime-wipe:
-	rm -rf $(DOT_RUNTIME_ROOT) $(RUNTIME_ENV)
+	rm -rf $(DOT_RUNTIME_ROOT) $(DEPLOY_ENV_ROOT)
 
 # ── Generated include-concrete rules from <env>_PARENT ───────────────
 $(foreach V,$(PARENT_VARS),$(eval $(call env-depends-on,$(V:%_PARENT=%),$($(V)))))
