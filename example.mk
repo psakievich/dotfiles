@@ -32,6 +32,11 @@ ENVS = corporate core editor
 include $(DOTFILES)/internal.mk
 
 # ── Dependency ordering ───────────────────────────────────────────────
-# Corporate environment builds first; dotfiles environments depend on it.
+# Declare include-concrete parents before including internal.mk, e.g.
+#   core_PARENT   = corporate
+#   editor_PARENT = core
+# A chain keeps every env consistent with its parents, so the combined
+# runtime view never sees two builds of the same package. Plain prerequisites
+# (below) only order the builds; the envs are concretized independently.
 core: corporate
 editor: corporate core

@@ -18,6 +18,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Overlay Makefile test
       run: bash test/test_overlay.sh
+    - name: Hermetic shell test
+      run: bash test/test_hermetic.sh
 
   full-build:
     if: github.event_name == 'workflow_dispatch'
@@ -28,8 +30,14 @@ jobs:
         os: [ubuntu-latest, macos-14]
     steps:
     - uses: actions/checkout@v4
-    - name: Full install
+    - name: Full install (build in scratch, runtime from buildcache)
+      env:
+        DOT_BUILD_ROOT: ${{ runner.temp }}/dotbuild
+        DOT_RUNTIME_ROOT: ${{ runner.temp }}/dotruntime
+      run: ./install.sh
+    - name: Runtime works without the build root
+      env:
+        DOT_RUNTIME_ROOT: ${{ runner.temp }}/dotruntime
       run: |
-        ./install.sh
-        source .dotprofile
-        stow .
+        rm -rf "${{ runner.temp }}/dotbuild"
+        bash -c 'source stow-point/.profile && nvim --version && tmux -V && rg --version'

@@ -1,2 +1,2 @@
-alias dot-spack=${DOTFILES:?}/spack/bin/spack
+alias dot-spack=sspack
 
