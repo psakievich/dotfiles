@@ -14,7 +14,9 @@ graphviz_PARENT = editor
 # Defaults to the leaves of ENVS; any built env can be deployed: make deploy-<env>
 # DEPLOY = graphviz
 
-# Machine-local additions (gitignored), e.g.
+# Per-machine paths (DOT_BUILD_ROOT, BUILDCACHE, ...) are best exported from
+# ~/.dotlocal: the shell profile and install.sh source it, make sees the env.
+# Worktree-local additions (gitignored), e.g.
 #   ENVS += work
 #   work_PARENT = graphviz
 #   DEPLOY = graphviz work

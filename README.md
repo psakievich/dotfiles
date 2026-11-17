@@ -19,6 +19,14 @@ $ bash --rcfile stow-point/.profile                    # try it in a subshell
 $ make stow                                            # link stow-point/.profile into $HOME
 ```
 
+Machine-specific settings go in an untracked `~/.dotlocal` (plain sh, sourced by the
+profile and `install.sh`; `make` sees the exported values), e.g.
+
+``` sh
+export DOT_BUILD_ROOT=/scratch/$USER/dotbuild
+export BUILDCACHE=/shared/caches/dotfiles
+```
+
 To add tools, edit `spack_environments/<env>/spack.yaml` (or add a new env chained with
 `<env>_PARENT` in the `Makefile`, or in a gitignored `local.mk`) and run `make`. Run
 `make runtime-gc` afterwards to drop anything no longer needed.

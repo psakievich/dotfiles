@@ -14,7 +14,10 @@ The repo holds configuration only. Binaries are built in a separate, disposable 
 | `DOT_BUILD_ROOT` | `$DOTFILES/.build` (gitignored) | spack clone, padded build install tree, stage, caches, build envs, buildcache |
 | `DOT_RUNTIME_ROOT` | `~/.local/opt/dotfiles` | shared runtime-only install tree `opt/` (no build deps); per deployment `<env>/view` and `<env>/load.sh`; `active` (deployments the shell loads) |
 
-On machines with a small HOME, export `DOT_BUILD_ROOT=/scratch/...` before building and before the profile is sourced. The build root can be deleted at any time; the shell only depends on the runtime root.
+On machines with a small HOME, set `export DOT_BUILD_ROOT=/scratch/...` in `~/.dotlocal` (see below) so the profile, `install.sh` and Make all see it. The build root can be deleted at any time; the shell only depends on the runtime root.
+
+### `~/.dotlocal` (machine-local, untracked)
+A POSIX sh file in `$HOME` (path overridable with `DOTLOCAL`) that `stow-point/.profile` sources when present, right after computing `DOTFILES` (so also in `hermetic` shells). Use it for per-machine paths and settings, e.g. `DOT_BUILD_ROOT`, `DOT_RUNTIME_ROOT`, `BUILDCACHE`, `DEPLOY`. `install.sh` sources it too (with `set -a`). Make does not read it: it sees exported values through the environment, so `export` what Make needs; a `Makefile`/`local.mk` assignment or the make command line still wins.
 
 ## Key Commands
 
@@ -100,13 +103,13 @@ Two stages, each using its own Spack config scope from `configs/` (passed with `
 `shell/variables.sh` falls back to the legacy `env-src/graphviz_load.sh` when nothing is deployed. An exported `SPACK_ROOT` (e.g. from sourcing a `setup-env.sh`) is ignored by Make; override it in a Makefile or on the command line.
 
 ### Machine-Specific Configuration
-`Makefile` is the user-facing entry point where you declare environments (`ENVS`) and their include-concrete chain (`<env>_PARENT`). It `-include`s a gitignored `local.mk` first, for machine-local additions such as `ENVS += work`, `work_PARENT = graphviz`, `DEPLOY = graphviz work`, or `DOT_BUILD_ROOT = /scratch/...`. Chain new envs onto an existing one rather than adding independent envs, so the combined runtime view has no conflicting builds of the same package. `example.mk` shows how to add a machine-specific environment as a prerequisite. Shared Spack config (package repos) lives in `configs/common`; `configs/build` and `configs/runtime` hold the per-stage install locations.
+`Makefile` is the user-facing entry point where you declare environments (`ENVS`) and their include-concrete chain (`<env>_PARENT`). It `-include`s a gitignored `local.mk` first, for worktree-local additions such as `ENVS += work`, `work_PARENT = graphviz`, `DEPLOY = graphviz work`, or `DOT_BUILD_ROOT = /scratch/...`. Chain new envs onto an existing one rather than adding independent envs, so the combined runtime view has no conflicting builds of the same package. `example.mk` shows how to add a machine-specific environment as a prerequisite. Shared Spack config (package repos) lives in `configs/common`; `configs/build` and `configs/runtime` hold the per-stage install locations.
 
 ### Stow Symlink Strategy
 Only `stow-point/` is stowed into `$HOME` (via `make stow`). It contains `stow-point/.profile` which bootstraps the shell by computing `DOTFILES` (the repo root) and sourcing the `shell/` scripts directly — no other directories need to be stowed. XDG dirs (`XDG_CONFIG_HOME`, `XDG_DATA_HOME`, etc.) are pointed at `$DOTFILES` so tools like neovim find their configs in the repo without symlinks.
 
 ### Shell Configuration
-- `stow-point/.profile` — entry point stowed to `~/.profile`; computes `DOTFILES` and sources the shell scripts below
+- `stow-point/.profile` — entry point stowed to `~/.profile`; computes `DOTFILES`, sources `~/.dotlocal` if present, then the shell scripts below
 - `shell/variables.sh` — defaults `DOT_BUILD_ROOT`/`DOT_RUNTIME_ROOT`, sources the deployments' `load.sh`, sets XDG dirs, EDITOR, PS1
 - `shell/functions.sh` — utility functions (path management, spack helpers such as `sspack`/`sspack-runtime`, `hermetic`, `dot-deployments`, directory navigation)
 - `shell/alias.sh` — shell aliases

@@ -209,7 +209,7 @@ HELP
         "BASH_SILENCE_DEPRECATION_WARNING=1")
   local _v _val
   for _v in $(echo USER LOGNAME TERM LANG LC_ALL TMPDIR SSH_AUTH_SOCK DISPLAY COLORTERM \
-                   DOT_BUILD_ROOT DOT_RUNTIME_ROOT ${DOT_HERMETIC_KEEP:-}); do
+                   DOT_BUILD_ROOT DOT_RUNTIME_ROOT DOTLOCAL ${DOT_HERMETIC_KEEP:-}); do
     eval "_val=\${${_v}-__dot_unset__}"
     [ "$_val" = __dot_unset__ ] || keep+=("${_v}=${_val}")
   done

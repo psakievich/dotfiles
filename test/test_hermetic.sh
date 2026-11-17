@@ -7,6 +7,7 @@ set -euo pipefail
 DOTFILES="$(cd "$(dirname "$0")/.." && pwd)"
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
+unset DOTLOCAL   # use the default, $HOME/.dotlocal (HOME is faked below)
 
 pass() { echo "  PASS: $1"; }
 fail() { echo "  FAIL: $1"; echo "$OUT"; exit 1; }
@@ -26,6 +27,7 @@ export ${UP}_VAR=1
 LOAD
 done
 echo alpha > "$RT/active"
+echo 'export DOTLOCAL_MARK=from-dotlocal' > "$T/home/.dotlocal"
 
 PROBE='echo "PATH=$PATH"
 echo "ALPHA=${ALPHA_VAR-unset} BETA=${BETA_VAR-unset}"
@@ -34,6 +36,7 @@ echo "MODE=${DOT_HERMETIC-unset}"
 echo "CFG=${MYCONFIGINSTALLED-unset}"
 echo "KEEP=${FOO_KEEP-unset}"
 echo "SH=${DOT_HERMETIC_SHELL-unset}"
+echo "MARK=${DOTLOCAL_MARK-unset}"
 for t in alphatool betatool; do command -v $t >/dev/null && echo "$t=yes" || echo "$t=no"; done'
 
 # run <shell> <commands>: load the profile with the fake runtime in <shell>,
@@ -66,13 +69,16 @@ for SH in "${SHELLS[@]}"; do
   OUT=$(DOT_DEPLOYMENTS=gamma run "$SH" 'true')
   has "deployment 'gamma' not found" && pass "missing deployment warns" || fail "missing deployment warning"
 
+  OUT=$(run "$SH" 'sh -c "$PROBE"')
+  has "MARK=from-dotlocal" && pass "profile sources ~/.dotlocal" || fail "~/.dotlocal not sourced"
+
   OUT=$(run "$SH" 'dot-deployments')
   has "^\* alpha" && has "^  beta" && pass "dot-deployments marks loaded deployments" || fail "dot-deployments"
 
   # ── hermetic ──
   OUT=$(run "$SH" 'hermetic -- sh -c "$PROBE"')
   has "ALPHA=unset BETA=unset" && has "CMAKE=unset" && has "alphatool=no" \
-    && has "MODE=config" && has "CFG=1" && ! has "$RT" \
+    && has "MODE=config" && has "CFG=1" && has "MARK=from-dotlocal" && ! has "$RT" \
     && pass "default: dotfiles config loaded, no deployments" || fail "default mode"
 
   OUT=$(run "$SH" 'hermetic --deploy beta -- sh -c "$PROBE"')
