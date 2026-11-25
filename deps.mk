@@ -12,15 +12,15 @@ SPACK_URL       ?= https://github.com/spack/spack
 TPM_URL         ?= https://github.com/tmux-plugins/tpm.git
 
 # ── Clone paths ──────────────────────────────────────────────────────
-SPACK_DIR       ?= spack
+# SPACK_DIR is normally set by internal.mk to $(SPACK_ROOT)
+SPACK_DIR       ?= .build/spack
 TPM_DIR         ?= .tmux/plugins/tpm
 
 # ── Clone rules ──────────────────────────────────────────────────────
 $(SPACK_DIR):
 	git clone --depth 1 --branch $(SPACK_VERSION) $(SPACK_URL) $@
 	$(@)/bin/spack repo set --scope site --destination '$$spack/etc/spack-packages' builtin
-	$(@)/bin/spack bootstrap root '$$spack/etc/bootstrap'
-	$(@)/bin/spack config --scope site add 'include:[$$spack/../configs]'
+	$(@)/bin/spack bootstrap root --scope site '$$spack/etc/bootstrap'
 
 $(TPM_DIR):
 	mkdir -p $(dir $@)
