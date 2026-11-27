@@ -2,12 +2,18 @@
 # Run the tools' spack with its config scopes.
 #   sspack <args>             build scope (DOT_BUILD_ROOT install tree)
 #   sspack --runtime <args>   runtime scope (DOT_RUNTIME_ROOT install tree)
+set -e
 here=$(cd -- "$(dirname -- "$0")" && pwd -P)
 scope=build
 if [ "${1:-}" = --runtime ]; then scope=runtime; shift; fi
-: "${DOT_BUILD_ROOT:=$here/.build}"
-: "${DOT_RUNTIME_ROOT:=$HOME/.local/opt/dotfiles}"
+# Ask the Makefile for every location, so local.mk, exported values and the
+# defaults resolve exactly as they do for make.
+vars=$(${MAKE:-make} -s --no-print-directory -C "$here" \
+  print-DOT_BUILD_ROOT print-DOT_RUNTIME_ROOT print-SPACK_ROOT print-CONFIG_ROOT)
+{ read -r build; read -r runtime; read -r spack_root; read -r config; } <<EOF
+$vars
+EOF
 # config.yaml reads these; Spack unsets *_ROOT variables in build processes
-export DOTSPACK_BUILD="$DOT_BUILD_ROOT" DOTSPACK_RUNTIME="$DOT_RUNTIME_ROOT"
-export SPACK_DISABLE_LOCAL_CONFIG=1 SPACK_USER_CACHE_PATH="$DOT_BUILD_ROOT/user-cache"
-exec "$DOT_BUILD_ROOT/spack/bin/spack" -C "$here/configs/common" -C "$here/configs/$scope" "$@"
+export DOTSPACK_BUILD="$build" DOTSPACK_RUNTIME="$runtime"
+export SPACK_DISABLE_LOCAL_CONFIG=1 SPACK_USER_CACHE_PATH="$build/user-cache"
+exec "$spack_root/bin/spack" -C "$config/common" -C "$config/$scope" "$@"
