@@ -75,6 +75,8 @@ tools/sspack [--runtime] … # this spack with the build (or runtime) config sco
 
 **Deploy** (`configs/common` + `configs/runtime`): `deploy/` include-concretes `env/`, with its view at `DOT_RUNTIME_ROOT/view` and the buildcache as a mirror; `install --use-buildcache only` installs only the link/run closure (no build deps). `load.sh` is generated from `spack env activate --sh` by `lib/make_load_sh.py`, which keeps only what Spack prepended and drops `SPACK_*`, so it references only the view and survives `build-wipe`.
 
+The config scopes read the roots from `DOTSPACK_BUILD`/`DOTSPACK_RUNTIME`, which the Makefile and `sspack` export. They must not use `DOT_*_ROOT`: Spack's `clean_environment()` unsets every `*_ROOT` variable except `SPACK_ROOT` in the build process. That process resolves `build_stage` and the caches, and an unexpanded path ends up relative to the config file (`tools/test/test_make.sh` checks for this).
+
 `gc` passes the build env to `spack gc -e`, because `gc -e` ignores `include_concrete` (passing the deploy env would uninstall everything). It refuses to run when nothing is deployed. An exported `SPACK_ROOT` (e.g. from a `setup-env.sh`) is ignored; set it in `local.mk` or on the command line.
 
 ## CI

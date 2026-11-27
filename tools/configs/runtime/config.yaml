@@ -2,6 +2,6 @@
 # No padding here, so runtime paths stay short and readable.
 config:
   install_tree:
-    root: ${DOT_RUNTIME_ROOT}/opt
-  source_cache: ${DOT_BUILD_ROOT}/cache/source
-  misc_cache: ${DOT_BUILD_ROOT}/cache/misc
+    root: ${DOTSPACK_RUNTIME}/opt
+  source_cache: ${DOTSPACK_BUILD}/cache/source
+  misc_cache: ${DOTSPACK_BUILD}/cache/misc

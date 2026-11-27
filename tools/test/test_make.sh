@@ -42,6 +42,12 @@ has "env create -d $B/env $T/other.yaml" && has "--update-index $T/bc" \
 OUT=$(SPACK_ROOT=/from/setup-env mk print-SPACK_ROOT)
 [ "$OUT" = "$B/spack" ] && pass "exported SPACK_ROOT is ignored" || fail "exported SPACK_ROOT"
 
+# Spack unsets *_ROOT variables in build processes, so config scopes must not use them
+OUT=$(grep -rnE --include="*.yaml" '\$\{?[A-Za-z_]*_ROOT\b' "$TOOLS/configs" || true)
+[ -z "$OUT" ] && pass "config scopes avoid *_ROOT variables" || fail "config uses a *_ROOT variable"
+OUT=$(mk print-DOTSPACK_BUILD; mk print-DOTSPACK_RUNTIME)
+[ "$OUT" = "$B"$'\n'"$R" ] && pass "DOTSPACK_BUILD/RUNTIME follow the roots" || fail "DOTSPACK_*"
+
 OUT=$(mk -n deps)
 has "git clone --depth 1 --branch develop https://github.com/spack/spack $B/spack" \
   && pass "deps clones spack into DOT_BUILD_ROOT" || fail "deps"

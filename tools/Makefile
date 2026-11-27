@@ -42,8 +42,12 @@ DEPLOY_ENV := $(DOT_BUILD_ROOT)/deploy
 VIEW       := $(DOT_RUNTIME_ROOT)/view
 LOAD_SH    := $(DOT_RUNTIME_ROOT)/load.sh
 
-# Spack config scopes reference these, and nothing should fall back to ~/.spack
-export DOT_BUILD_ROOT DOT_RUNTIME_ROOT
+# The config scopes (configs/*/config.yaml) read the roots from these. They
+# can't use DOT_*_ROOT: Spack unsets every *_ROOT variable (except SPACK_ROOT)
+# in the build process, which resolves build_stage and the caches.
+export DOTSPACK_BUILD   := $(DOT_BUILD_ROOT)
+export DOTSPACK_RUNTIME := $(DOT_RUNTIME_ROOT)
+# nothing should fall back to ~/.spack
 export SPACK_DISABLE_LOCAL_CONFIG := 1
 export SPACK_USER_CACHE_PATH := $(DOT_BUILD_ROOT)/user-cache
 

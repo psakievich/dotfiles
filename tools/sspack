@@ -7,6 +7,7 @@ scope=build
 if [ "${1:-}" = --runtime ]; then scope=runtime; shift; fi
 : "${DOT_BUILD_ROOT:=$here/.build}"
 : "${DOT_RUNTIME_ROOT:=$HOME/.local/opt/dotfiles}"
-export DOT_BUILD_ROOT DOT_RUNTIME_ROOT
+# config.yaml reads these; Spack unsets *_ROOT variables in build processes
+export DOTSPACK_BUILD="$DOT_BUILD_ROOT" DOTSPACK_RUNTIME="$DOT_RUNTIME_ROOT"
 export SPACK_DISABLE_LOCAL_CONFIG=1 SPACK_USER_CACHE_PATH="$DOT_BUILD_ROOT/user-cache"
 exec "$DOT_BUILD_ROOT/spack/bin/spack" -C "$here/configs/common" -C "$here/configs/$scope" "$@"
