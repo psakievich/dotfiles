@@ -7,7 +7,7 @@ set -euo pipefail
 TOOLS="$(cd "$(dirname "$0")/.." && pwd)"
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
-unset DOT_BUILD_ROOT DOT_RUNTIME_ROOT SPACK_ROOT BUILDCACHE ENV_TEMPLATE
+unset DOT_BUILD_ROOT DOT_RUNTIME_ROOT SPACK_ROOT BUILDCACHE ENV_TEMPLATE CONFIG_ROOT
 
 pass() { echo "  PASS: $1"; }
 fail() { echo "  FAIL: $1"; echo "$OUT"; exit 1; }
@@ -47,6 +47,17 @@ OUT=$(grep -rnE --include="*.yaml" '\$\{?[A-Za-z_]*_ROOT\b' "$TOOLS/configs" || 
 [ -z "$OUT" ] && pass "config scopes avoid *_ROOT variables" || fail "config uses a *_ROOT variable"
 OUT=$(mk print-DOTSPACK_BUILD; mk print-DOTSPACK_RUNTIME)
 [ "$OUT" = "$B"$'\n'"$R" ] && pass "DOTSPACK_BUILD/RUNTIME follow the roots" || fail "DOTSPACK_*"
+
+# sspack takes its locations from the Makefile (the mock spack sits at the
+# default SPACK_ROOT, since make ignores an exported SPACK_ROOT)
+S="$T/sspack-build"
+mkdir -p "$S/spack/bin" && cp "$MOCK/bin/spack" "$S/spack/bin/"
+OUT=$(DOT_BUILD_ROOT="$S" "$TOOLS/sspack" find)
+has "mock-spack -C $TOOLS/configs/common -C $TOOLS/configs/build find" \
+  && pass "sspack uses the Makefile's spack and configs" || fail "sspack defaults"
+OUT=$(DOT_BUILD_ROOT="$S" CONFIG_ROOT="$T/cfg" "$TOOLS/sspack" --runtime find)
+has "mock-spack -C $T/cfg/common -C $T/cfg/runtime find" \
+  && pass "sspack follows CONFIG_ROOT" || fail "sspack CONFIG_ROOT"
 
 OUT=$(mk -n deps)
 has "git clone --depth 1 --branch develop https://github.com/spack/spack $B/spack" \
