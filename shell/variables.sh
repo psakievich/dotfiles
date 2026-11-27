@@ -10,13 +10,10 @@ unset _dot_env
 
 export EDITOR=nvim
 
-export DOT_ORG_PS1=${DOT_ORG_PS1:-"${PS1}"}
 
-if [[ $SHLVL -gt 1 ]]; then
-  _ASTERISK_STACK=$(printf '%*s' "$(($SHLVL - 1))" | tr ' ' '*')
-fi
+PS1="[${SHLVL}] ${PS1}"
+export PS1="${DOT_HERMETIC:+[hermetic:${DOT_HERMETIC}]} ${PS1}"
 
-export PS1="${DOT_HERMETIC:+[hermetic:${DOT_HERMETIC}]}${_ASTERISK_STACK} ${DOT_ORG_PS1}"
 export MYCONFIGINSTALLED=1
 
 export XDG_CONFIG_HOME=${DOTFILES:-$HOME}/.config
