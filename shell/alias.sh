@@ -1,2 +1,1 @@
-alias dot-spack=sspack
-
+# Shell aliases

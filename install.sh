@@ -1,25 +1,19 @@
 #!/bin/bash -l
-# Bootstrap: clone deps, build in DOT_BUILD_ROOT, deploy into DOT_RUNTIME_ROOT.
+# Bootstrap a clone or worktree. Two independent steps:
 #
-#   DOT_BUILD_ROOT    (default: <repo>/.build)           scratch-friendly, disposable
-#   DOT_RUNTIME_ROOT  (default: ~/.local/opt/dotfiles)   what the shell sources
+#   1. tools/: build the Spack env, push to the buildcache, deploy it, and
+#      symlink the gitignored env.sh (which the shell sources) to its load.sh.
+#      Skip with --no-tools, e.g. when env.sh points somewhere else.
+#   2. dotfiles: clone tpm.
 #
-# e.g.  DOT_BUILD_ROOT=/scratch/$USER/dotbuild ./install.sh
-# or set them once per machine in ~/.dotlocal, which this script and the
-# shell profile both source (make itself only sees the environment).
+# Machine-local settings (DOT_BUILD_ROOT, DOT_RUNTIME_ROOT, ...) go in
+# ~/.dotlocal, which this script, tools/install.sh and the profile source.
+set -e
 
-cmd(){
-  echo "$@"
-  eval "$@"
-}
+export DOTFILES="$( cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 ; pwd -P )"
 
-export DOTFILES="$( cd -- "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" >/dev/null 2>&1 ; pwd -P )"
-
-# machine-local settings; set -a exports plain assignments too, for make
-DOTLOCAL="${DOTLOCAL:-${HOME}/.dotlocal}"
-if [ -f "$DOTLOCAL" ]; then
-  set -a; source "$DOTLOCAL"; set +a
+if [ "${1:-}" != --no-tools ]; then
+  "${DOTFILES}/tools/install.sh" "${DOTFILES}/env.sh"
 fi
 
-cmd "make -C ${DOTFILES:?} deps"
-cmd "make -C ${DOTFILES:?} all"
+make -C "${DOTFILES}" deps
