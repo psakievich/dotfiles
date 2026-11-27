@@ -1,27 +1,42 @@
-# Top-level environments to build. Parents (below) are built automatically.
-ENVS = graphviz
+# Dotfiles: configuration and scripts only.
+#
+# Tools (nvim, tmux, stow, ...) come from whatever the gitignored env.sh sets
+# up; the shell sources it if present. tools/ builds a Spack deployment and
+# can link env.sh to it: tools/install.sh $PWD/env.sh
+#
+#   make deps     clone tpm
+#   make stow     link stow-point/ (i.e. ~/.profile) into $HOME
+#   make unstow   remove those links
+DOTFILES_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/
 
-# Include-concrete chain: <env>_PARENT = <parent env(s)>
-# A child env reuses its parent's concretization, which keeps the combined
-# runtime view free of conflicting builds of the same package.
-editor_PARENT   = core
-graphviz_PARENT = editor
+TPM_VERSION ?= master
+TPM_URL     ?= https://github.com/tmux-plugins/tpm.git
+TPM_DIR     ?= $(DOTFILES_DIR).tmux/plugins/tpm
+STOW        ?= stow
+DOT_ENV     ?= $(DOTFILES_DIR)env.sh
 
-# Optionally point to a different spack installation
-# SPACK_ROOT = /some/local/path
+# gitignored, worktree-local overrides
+-include $(DOTFILES_DIR)local.mk
 
-# Deployed by `make all` / `make deploy`, in shell load order (later wins).
-# Defaults to the leaves of ENVS; any built env can be deployed: make deploy-<env>
-# DEPLOY = graphviz
+.PHONY: all deps update-deps stow unstow
 
-# Per-machine paths (DOT_BUILD_ROOT, BUILDCACHE, ...) are best exported from
-# ~/.dotlocal: the shell profile and install.sh source it, make sees the env.
-# Worktree-local additions (gitignored), e.g.
-#   ENVS += work
-#   work_PARENT = graphviz
-#   DEPLOY = graphviz work
-#   DOT_BUILD_ROOT = /scratch/$(USER)/dotbuild
--include local.mk
+all: deps
 
-# Include the make file that builds everything else
-include internal.mk
+print-%:
+	@echo $($(*))
+
+deps: $(TPM_DIR)
+
+$(TPM_DIR):
+	mkdir -p $(dir $@)
+	git clone --depth 1 --branch $(TPM_VERSION) $(TPM_URL) $@
+
+update-deps:
+	cd $(TPM_DIR) && git fetch --depth 1 origin $(TPM_VERSION) && git checkout FETCH_HEAD
+
+# stow may itself come from env.sh
+stow:
+	[ ! -f '$(DOT_ENV)' ] || . '$(DOT_ENV)'; $(STOW) --dir $(DOTFILES_DIR) --target $(HOME) stow-point
+
+unstow:
+	[ ! -f '$(DOT_ENV)' ] || . '$(DOT_ENV)'; $(STOW) --dir $(DOTFILES_DIR) --target $(HOME) --delete stow-point

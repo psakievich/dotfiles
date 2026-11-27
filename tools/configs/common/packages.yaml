@@ -1,0 +1,5 @@
+packages:
+  # git -> openssh (run dep). Kerberos auth isn't needed, and krb5 1.22.3
+  # fails to link libgssrpc on macOS (undefined _k5_secure_getenv).
+  openssh:
+    variants: ~gssapi

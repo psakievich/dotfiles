@@ -4,127 +4,80 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal dotfiles repo using **Spack** as a package manager to vendor binaries and **GNU Stow** to manage symlinks into `$HOME`. The repo is designed as a bare git repository with worktrees, allowing new dotfile configurations to be tested in subshells before migrating to the daily driver.
+Personal dotfiles repo, used as a bare git repository with worktrees so new configurations can be tested in subshells before they replace the daily driver. It has two independent parts, kept in one repo for now in preparation for a split:
 
-The repo holds configuration only. Binaries are built in a separate, disposable **build root** and deployed from a Spack buildcache into a **runtime root**, one view per deployed env:
-
-| Root | Default | Contents |
+| Part | Where | Role |
 |---|---|---|
-| `$DOTFILES` | the repo | config only |
-| `DOT_BUILD_ROOT` | `$DOTFILES/.build` (gitignored) | spack clone, padded build install tree, stage, caches, build envs, buildcache |
-| `DOT_RUNTIME_ROOT` | `~/.local/opt/dotfiles` | shared runtime-only install tree `opt/` (no build deps); per deployment `<env>/view` and `<env>/load.sh`; `active` (deployments the shell loads) |
+| dotfiles | repo root | configs and shell scripts only; GNU Stow links `stow-point/` into `$HOME` |
+| tools | `tools/` | one Spack environment: build → buildcache → deploy from the cache |
 
-On machines with a small HOME, set `export DOT_BUILD_ROOT=/scratch/...` in `~/.dotlocal` (see below) so the profile, `install.sh` and Make all see it. The build root can be deleted at any time; the shell only depends on the runtime root.
+**The only connection between them is `env.sh`**: a gitignored file at the repo root (path overridable with `DOT_ENV`) that `shell/variables.sh` sources if it exists. `tools/` can make it a symlink to its deployment's `load.sh` (`make -C tools link LINK=$PWD/env.sh`), but any script that sets up PATH etc. works. Nothing outside `tools/` should reference Spack build/runtime paths, and nothing inside `tools/` should reference the dotfiles.
 
 ### `~/.dotlocal` (machine-local, untracked)
-A POSIX sh file in `$HOME` (path overridable with `DOTLOCAL`) that `stow-point/.profile` sources when present, right after computing `DOTFILES` (so also in `hermetic` shells). Use it for per-machine paths and settings, e.g. `DOT_BUILD_ROOT`, `DOT_RUNTIME_ROOT`, `BUILDCACHE`, `DEPLOY`. `install.sh` sources it too (with `set -a`). Make does not read it: it sees exported values through the environment, so `export` what Make needs; a `Makefile`/`local.mk` assignment or the make command line still wins.
+A POSIX sh file in `$HOME` (path overridable with `DOTLOCAL`) that `stow-point/.profile` sources right after computing `DOTFILES` (so also in `hermetic` shells). `install.sh` and `tools/install.sh` source it with `set -a`. Use it for per-machine paths such as `DOT_BUILD_ROOT`, `DOT_RUNTIME_ROOT`, `BUILDCACHE` and `DOT_ENV`. Make only sees exported values; a `local.mk` assignment or the make command line wins.
 
-## Key Commands
-
-### Bootstrap a fresh clone or worktree
-```bash
-./install.sh        # make deps && make all
-DOT_BUILD_ROOT=/scratch/$USER/dotbuild ./install.sh   # build outside HOME
-make stow            # stow stow-point/ contents (i.e. .profile) into $HOME
-```
-
-`install.sh` can be run from any directory — it resolves its own location and uses `make -C` to target the repo root.
-
-### Build with Make (preferred)
-The `Makefile` includes `internal.mk` which defines all build rules. Environment dependency ordering is declared in the `Makefile` itself.
+## Dotfiles (repo root)
 
 ```bash
-make all             # build + deploy
-make build           # build all envs in DOT_BUILD_ROOT and push to the buildcache
-make core            # build just the core environment
-make deploy          # deploy-<env> for each env in DEPLOY, and write DOT_RUNTIME_ROOT/active
-make deploy-<env>    # install <env> from the buildcache into its own view + load.sh
-make undeploy-<env>  # remove a deployment (installs stay until runtime-gc)
-make stow            # stow stow-point using the deployed stow
-make <env>-clean     # remove spack.lock (and build sentinel) for an environment
-make <env>-wipe      # remove a build environment entirely
-make wipe            # remove all build environments
-make build-wipe      # remove the whole build root (spack, build tree, buildcache)
-make runtime-wipe    # remove all deployments and the runtime install tree
-make runtime-gc      # uninstall runtime packages no current deployment needs
-make print-<VAR>     # print a make variable, e.g. print-DOT_BUILD_ROOT
+./install.sh              # tools/install.sh $DOTFILES/env.sh, then make deps
+./install.sh --no-tools   # dotfiles only
+make deps                 # clone tpm into .tmux/plugins/tpm
+make stow / make unstow   # (un)link stow-point/ into $HOME; stow may come from env.sh
+bash --rcfile stow-point/.profile   # test without touching $HOME
 ```
 
-### Test the local install
-After building environments the user profile can be tested without symlinking to `HOME`. This is often the preferred method of working with the repository on corporate systems or group settings where differences in dotfiles can create very challenging bugs to reproduce between developer environments.
-```bash
-bash --rcfile stow-point/.profile
-```
+`Makefile` `-include`s a gitignored `local.mk`.
 
-### Deployments in the shell
-`shell/variables.sh` sources `$DOT_RUNTIME_ROOT/<env>/load.sh` for each deployment in `$DOT_DEPLOYMENTS` (space or comma separated), or, if that is unset, in `$DOT_RUNTIME_ROOT/active` as written by `make deploy`. Later entries take precedence (each load.sh prepends). `DOT_DEPLOYMENTS=` loads none. `dot-deployments` lists what exists, marking what the current shell loads.
+### Shell configuration
+- `stow-point/.profile` — entry point stowed to `~/.profile`; computes `DOTFILES`, sources `~/.dotlocal`, then the scripts below
+- `shell/variables.sh` — sources `env.sh` (unless in a `hermetic` shell without `--env`), sets XDG dirs (pointed at `$DOTFILES` so nvim etc. find configs without symlinks), EDITOR, PS1
+- `shell/functions.sh` — utility functions (path management, `unload_spack`, `hermetic`, directory navigation)
+- `shell/alias.sh`, `shell/completions.sh` — aliases; zsh completion with bash compat
 
-### Hermetic subshell (no deployments)
-`hermetic` (in `shell/functions.sh`) starts a bash or zsh subshell, or runs a command, from an empty environment (`env -i`), so nothing a deployment added to PATH, CMAKE_PREFIX_PATH, PKG_CONFIG_PATH, DYLD_*/LD_*, etc. leaks in. The child shell is looked up on the hermetic PATH. Interactive zsh uses `ZDOTDIR=shell/hermetic-zdotdir` (zsh has no `--rcfile`) and `-d` to skip the global `/etc/z*` files. The child sets `DOT_HERMETIC=<mode>`, `DOT_HERMETIC_SHELL=<shell>` and `DOT_DEPLOYMENTS=<--deploy list>`; the prompt is tagged `[hermetic:<mode>:<deployments>]`.
+### Hermetic subshell
+`hermetic` (in `shell/functions.sh`) starts a bash or zsh subshell, or runs a command, from an empty environment (`env -i`), so nothing `env.sh` added to PATH, CMAKE_PREFIX_PATH, DYLD_*/LD_*, etc. leaks in. The child shell is looked up on the hermetic PATH. Interactive zsh uses `ZDOTDIR=shell/hermetic-zdotdir` (zsh has no `--rcfile`) and `-d` to skip `/etc/z*`. The child sets `DOT_HERMETIC=<mode>` and `DOT_HERMETIC_SHELL=<shell>`; the prompt shows `[hermetic:<mode>]`.
 ```bash
 hermetic                 # dotfiles config, system PATH only
-hermetic --deploy core   # dotfiles config + only these deployments (comma list)
-hermetic --tools         # also the bin/ of this shell's deployments, no other view vars
+hermetic --env           # dotfiles config + env.sh, freshly sourced
 hermetic --bare          # no dotfiles at all
 hermetic -- cmake ..     # run one command
 hermetic --shell bash    # child shell; default $DOT_HERMETIC_SHELL, else the current shell
 DOT_HERMETIC_KEEP="FOO BAR" hermetic   # pass extra variables through
 ```
 
-### Remove symlinks temporarily
+### Neovim config (`.config/nvim/init.lua`)
+Single-file config using mini.nvim (mini.deps). Supports modes (develop, pair, blank) toggled via keymaps. LSP servers: pylsp, clangd, lua_ls, marksman.
+
+## Tools (`tools/`)
+
+Self-contained: its own `Makefile`, `install.sh`, `spack.yaml`, `configs/`, `lib/`, `test/`, and gitignored `local.mk`.
+
 ```bash
-stow -D stow-point
+tools/install.sh [<link>]  # make deps all [+ make link LINK=<link>]
+make -C tools              # build + deploy
+make -C tools build        # concretize, install, push to the buildcache
+make -C tools deploy       # install from the buildcache into DOT_RUNTIME_ROOT, write load.sh
+make -C tools link LINK=…  # symlink LINK to load.sh (won't replace a regular file)
+make -C tools gc           # uninstall runtime packages no longer needed
+make -C tools clean        # drop spack.lock/.cached to force a re-concretize
+make -C tools build-wipe   # remove DOT_BUILD_ROOT
+make -C tools runtime-wipe # remove DOT_RUNTIME_ROOT
+make -C tools print-<VAR>
+tools/sspack [--runtime] … # this spack with the build (or runtime) config scopes
 ```
 
-### CI
-GitHub Actions (`.github/workflows/tests.yml`) has two jobs:
-- **fast-checks**: runs `test/test_overlay.sh` and `test/test_hermetic.sh` on every push/PR to `main`
-- **full-build**: manual (`workflow_dispatch`) only — runs `install.sh` with separate build/runtime roots, deletes the build root, then checks the tools still run from the deployment
+| Root | Default | Contents |
+|---|---|---|
+| `DOT_BUILD_ROOT` | `tools/.build` (gitignored) | spack clone, padded build tree, stage, caches, `env/` (build env), `deploy/` (deploy env), `buildcache/` |
+| `DOT_RUNTIME_ROOT` | `~/.local/opt/dotfiles` | `opt/` (runtime-only installs), `view/`, `load.sh` |
 
-## Architecture
+**Build** (`configs/common` + `configs/build`): `env/spack.yaml` is created from `ENV_TEMPLATE` (default `tools/spack.yaml`) → `spack.lock` → `install` + `buildcache push --unsigned` → `.cached` sentinel. `padded_length: 128` lets binaries relocate into any runtime path.
 
-### Build System (`internal.mk`)
-Two stages, each using its own Spack config scope from `configs/` (passed with `spack -C`; `configs/common` is shared):
+**Deploy** (`configs/common` + `configs/runtime`): `deploy/` include-concretes `env/`, with its view at `DOT_RUNTIME_ROOT/view` and the buildcache as a mirror; `install --use-buildcache only` installs only the link/run closure (no build deps). `load.sh` is generated from `spack env activate --sh` by `lib/make_load_sh.py`, which keeps only what Spack prepended and drops `SPACK_*`, so it references only the view and survives `build-wipe`.
 
-**Build stage** (`configs/build`, everything under `DOT_BUILD_ROOT`), per environment:
-1. **`envs/<env>/spack.yaml`** → independent env created from `spack_environments/<env>/spack.yaml`, with `--include-concrete` for each parent declared as `<env>_PARENT = <parent(s)>` (rules generated at the end of `internal.mk`; the `env-depends-on` macro still works)
-2. **`envs/<env>/spack.lock`** → `spack concretize`
-3. **`envs/<env>/.cached`** → sentinel after `spack install` + `spack buildcache push --unsigned` into `DOT_BUILD_ROOT/buildcache`. The build install tree uses `padded_length: 128` so binaries relocate into any runtime path.
+`gc` passes the build env to `spack gc -e`, because `gc -e` ignores `include_concrete` (passing the deploy env would uninstall everything). It refuses to run when nothing is deployed. An exported `SPACK_ROOT` (e.g. from a `setup-env.sh`) is ignored; set it in `local.mk` or on the command line.
 
-**Deploy stage** (`configs/runtime`, shared install tree `DOT_RUNTIME_ROOT/opt`), per deployed env:
-1. **`deploy-<env>`**: a small env (`DOT_BUILD_ROOT/deploy/<env>`) include-concretes the `<env>` build env, with its view at `DOT_RUNTIME_ROOT/<env>/view` and the buildcache as a mirror. A deployment holds its env plus everything that env include-concretes, so deployments stack via `<env>_PARENT`; an env without parents deploys standalone.
-2. `spack install --use-buildcache only` installs only the link/run closure — build deps never reach the runtime root. Packages shared by several deployments are installed once.
-3. **`DOT_RUNTIME_ROOT/<env>/load.sh`** is generated from `spack env activate --sh` via `lib/make_load_sh.py`, which keeps only what Spack prepended (so it does not snapshot the build shell's PATH) and drops `SPACK_*`.
-
-`make deploy` deploys `DEPLOY` (default: the leaves of `ENVS`, i.e. envs that are nobody's parent) and writes that list, in order, to `DOT_RUNTIME_ROOT/active`. `deploy-<env>` works for any env with a template, without touching `active`. Deployments loaded together each have their own view; unless they share a `_PARENT` chain they may hold different builds of the same package, and the later one wins on PATH/library paths.
-
-`runtime-gc` re-invokes make so it sees the current deployments, then passes every build env in each deployment's chain to `spack gc -e`, because `gc -e` only keeps an env's own roots and ignores `include_concrete` (passing just the deploy envs would uninstall everything). It refuses to run when nothing is deployed.
-
-`shell/variables.sh` falls back to the legacy `env-src/graphviz_load.sh` when nothing is deployed. An exported `SPACK_ROOT` (e.g. from sourcing a `setup-env.sh`) is ignored by Make; override it in a Makefile or on the command line.
-
-### Machine-Specific Configuration
-`Makefile` is the user-facing entry point where you declare environments (`ENVS`) and their include-concrete chain (`<env>_PARENT`). It `-include`s a gitignored `local.mk` first, for worktree-local additions such as `ENVS += work`, `work_PARENT = graphviz`, `DEPLOY = graphviz work`, or `DOT_BUILD_ROOT = /scratch/...`. Chain new envs onto an existing one rather than adding independent envs, so the combined runtime view has no conflicting builds of the same package. `example.mk` shows how to add a machine-specific environment as a prerequisite. Shared Spack config (package repos) lives in `configs/common`; `configs/build` and `configs/runtime` hold the per-stage install locations.
-
-### Stow Symlink Strategy
-Only `stow-point/` is stowed into `$HOME` (via `make stow`). It contains `stow-point/.profile` which bootstraps the shell by computing `DOTFILES` (the repo root) and sourcing the `shell/` scripts directly — no other directories need to be stowed. XDG dirs (`XDG_CONFIG_HOME`, `XDG_DATA_HOME`, etc.) are pointed at `$DOTFILES` so tools like neovim find their configs in the repo without symlinks.
-
-### Shell Configuration
-- `stow-point/.profile` — entry point stowed to `~/.profile`; computes `DOTFILES`, sources `~/.dotlocal` if present, then the shell scripts below
-- `shell/variables.sh` — defaults `DOT_BUILD_ROOT`/`DOT_RUNTIME_ROOT`, sources the deployments' `load.sh`, sets XDG dirs, EDITOR, PS1
-- `shell/functions.sh` — utility functions (path management, spack helpers such as `sspack`/`sspack-runtime`, `hermetic`, `dot-deployments`, directory navigation)
-- `shell/alias.sh` — shell aliases
-- `shell/completions.sh` — zsh completion initialization and bash completion compat
-
-### Spack Environments (`spack_environments/`)
-- **core**: tmux, stow, python
-- **editor**: neovim, ripgrep, py-python-lsp-ruff
-- **graphviz**: graphviz, py-graphviz, py-pyyaml
-
-### Neovim Config (`.config/nvim/init.lua`)
-Single-file config using mini.nvim (mini.deps) as the plugin manager. Supports multiple modes (develop, pair, blank) toggled via keymaps. LSP servers: pylsp, clangd, lua_ls, marksman.
-
-### Make-Managed Dependencies (`deps.mk`)
-Dependencies are cloned via `make deps` instead of git submodules (submodules don't work well with the bare-repo worktree workflow). Version pins and URLs are defined in `deps.mk` and can be overridden for corporate mirrors.
-- `spack` — the Spack package manager (shallow clone into `$DOT_BUILD_ROOT/spack`, pinned to `develop`)
-- `spack-manager` — Spack extension for dotfile environment management
-- `.tmux/plugins/tpm` — tmux plugin manager
+## CI
+`.github/workflows/tests.yml`:
+- **fast-checks** (push/PR to `main`): `tools/test/test_make.sh` (dry-run plan with a mock spack, plus `link`) and `test/test_hermetic.sh` (env.sh loading and `hermetic` with a fake env.sh)
+- **full-build** (manual): `install.sh` with separate build/runtime roots, deletes the build root, then checks that `env.sh` is a link and that the tools run

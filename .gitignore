@@ -17,3 +17,4 @@ bin/uv*
 env-src
 .build
 local.mk
+env.sh
