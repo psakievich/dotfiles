@@ -19,6 +19,7 @@ require('mini.deps').setup({ path = { package = path_package } })
 -- startup and are optional.
 local add, now, later = MiniDeps.add, MiniDeps.now, MiniDeps.later
 
+local records_path = os.getenv("RECORDS_HOME") or "$HOME/records/"
 tslangs = {
     'bash',
     'cmake',
@@ -41,8 +42,6 @@ now(function()
     source = 'nvim-telescope/telescope-ui-select.nvim',
     depends = { 'nvim-telescope/telescope.nvim'},
   })
-end)
-later(function()
   add({
     source = 'nvim-treesitter/nvim-treesitter',
     -- Use 'master' while monitoring updates in 'main'
@@ -54,18 +53,42 @@ later(function()
   add({
     source = 'neovim/nvim-lspconfig',
   })
-  add(
-    {
-    source = "nvzone/typr",
-    depends = {"nvzone/volt"},
-}
-  )
-
-  -- Possible to immediately execute code which depends on the added plugin
   require('nvim-treesitter.configs').setup({
     ensure_installed = tslangs,
     highlight = { enable = true },
   })
+  end)
+later(function()
+  add({
+    source = "nvzone/typr",
+    depends = {"nvzone/volt"},
+  })
+  add({
+    source = "dautroc/nvim-flashcard",
+  })
+  require("flashcard").setup({
+      decks_dir = vim.fn.expand(records_path .. "flashcard/decks"),
+      new_cards_per_day = 20,
+      picker = nil, -- nil=auto | "snacks" | "telescope" | "select" | function
+      keymaps = {
+        reveal = "<Space>",
+        again = "1",
+        hard = "2",
+        good = "3",
+        easy = "4",
+        quit = "q",
+      },
+      window = { width = 0.5, height = 0.4, border = "rounded" },
+  })
+  add(
+    {
+      source = "Owen-Dechow/videre.nvim",
+      depends = {
+        "Owen-Dechow/graph_view_yaml_parser",
+        "Owen-Dechow/graph_view_toml_parser",
+      }
+    }
+  )
 
   local gen_loader = require('mini.snippets').gen_loader
   require('mini.snippets').setup({
@@ -225,7 +248,14 @@ vim.cmd.colorscheme("unokai")
 
 vim.keymap.set("n", "<Leader>er", "<cmd>edit $MYVIMRC<CR>", { desc = "Edit Neovim config" })
 vim.keymap.set("n", "<Leader>sr", "<cmd>so $MYVIMRC<CR>", { desc = "Source Neovim config"})
-vim.keymap.set("n", "<Leader>w", ":w<CR>", {desc = "Save file quickly", noremap=true})
+vim.keymap.set("n", "<Leader>w", ":w<CR>", {desc = "Save buffer quickly", noremap=true})
+vim.keymap.set("n", "<Leader>q", ":q<CR>", {desc = "Quit buffer quickly", noremap=true})
+vim.keymap.set("n", "<Leader>d", ":d<CR>", {desc = "Delete buffer quickly", noremap=true})
+vim.keymap.set("n", "<Leader>W", ":w!<CR>", {desc = "Force save buffer quickly", noremap=true})
+vim.keymap.set("n", "<Leader>Q", ":q!<CR>", {desc = "Force quit buffer quickly", noremap=true})
+vim.keymap.set("n", "<Leader>D", ":d!<CR>", {desc = "Force delete buffer quickly", noremap=true})
+
+vim.keymap.set({"n", "t", "i"}, "<C-Space>", "<C-\\><C-n>", {desc = "Quick ESC", noremap=true})
 
 -- Close floating windows with <Esc> in normal mode (telescope-style).
 -- nvim_win_get_config(0).relative is non-empty only for floating windows,
@@ -242,8 +272,6 @@ vim.keymap.set("t", "<C-W>j", "<C-\\><C-n><C-w>j", {noremap=true})
 vim.keymap.set("t", "<C-W>k", "<C-\\><C-n><C-w>k", {noremap=true})
 vim.keymap.set("t", "<C-W>h", "<C-\\><C-n><C-w>h", {noremap=true})
 vim.keymap.set("t", "<C-W>l", "<C-\\><C-n><C-w>l", {noremap=true})
-vim.keymap.set("t", "<C-Space>", "<C-\\><C-n>", {noremap=true, desc="Exit terminal mode"})
--- vim.keymap.set("t", "<ESC>", "<C-\\><C-n>", {noremap=true})
 
 vim.keymap.set("n", "<Leader>lf", vim.lsp.buf.format, {desc = "Format current buffer"})
 vim.keymap.set("n", "<Leader>la", vim.lsp.buf.code_action, {desc = "LSP code action (includes, fixes)"})
@@ -275,14 +303,14 @@ develop_mode = function()
   vim.wo.cursorline = true
   vim.wo.cursorcolumn = false
 end
-vim.api.nvim_create_user_command("DevMode", "lua develop_mode()", {})
+vim.api.nvim_create_user_command("ModeDev", "lua develop_mode()", {})
 --
 pairing_mode = function()
   vim.wo.relativenumber = false
   vim.wo.number = true
   vim.wo.cursorline = true
   vim.wo.cursorcolumn = true
-end vim.api.nvim_create_user_command("PairMode", "lua pairing_mode()", {})
+end vim.api.nvim_create_user_command("ModePair", "lua pairing_mode()", {})
 --
 blank_mode = function()
   vim.wo.relativenumber = false
@@ -290,7 +318,7 @@ blank_mode = function()
   vim.wo.cursorline = false
   vim.wo.cursorcolumn = false
 end
-vim.api.nvim_create_user_command("BlankMode", "lua blank_mode()", {})
+vim.api.nvim_create_user_command("ModeBlank", "lua blank_mode()", {})
 
 --------------------------------------------------
 -- Folding
@@ -315,7 +343,6 @@ vim.api.nvim_create_user_command("FoldLSP", "lua fold_lsp()", {})
 -- Snippets loaded via mini.snippets from snippets/markdown.json
 -- User commands below handle dynamic date injection
 --------------------------------------------------
-local records_path = os.getenv("RECORDS_HOME") or "$HOME/records/"
 
 local function open_floating_buf(bufnr, title)
   local width = math.floor(vim.o.columns * 0.85)
