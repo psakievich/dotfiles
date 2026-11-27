@@ -1,9 +1,19 @@
-if [ -d ${DOTFILES:?}/env-src ]; then
-  source ${DOTFILES:?}/env-src/graphviz_load.sh
+# Tools are not part of the dotfiles: source the gitignored env file if there
+# is one (e.g. a symlink to a deployment's load.sh; see tools/). Hermetic
+# shells skip it unless started with `hermetic --env`. Set DOT_ENV (e.g. in
+# ~/.dotlocal) to source a different file.
+_dot_env=${DOT_ENV:-${DOTFILES:?}/env.sh}
+if [ "${DOT_HERMETIC:-env}" = env ] && [ -f "${_dot_env}" ]; then
+  source "${_dot_env}"
 fi
+unset _dot_env
+
 export EDITOR=nvim
 
+
 PS1="[${SHLVL}] ${PS1}"
+export PS1="${DOT_HERMETIC:+[hermetic:${DOT_HERMETIC}]} ${PS1}"
+
 export MYCONFIGINSTALLED=1
 
 export XDG_CONFIG_HOME=${DOTFILES:-$HOME}/.config

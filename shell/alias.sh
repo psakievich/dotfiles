@@ -1,2 +1,1 @@
-alias dot-spack=${DOTFILES:?}/spack/bin/spack
-
+# Shell aliases

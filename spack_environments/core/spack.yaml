@@ -1,8 +1,0 @@
-spack:
-  specs:
-  - tmux  # dev life
-  - stow@2.4.1  # dotfile manager
-  - python@3.13
-  - py-pytest
-  - py-pip
-  - py-hatchling

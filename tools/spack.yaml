@@ -1,0 +1,25 @@
+# The one tools environment. It is built in DOT_BUILD_ROOT, pushed to the
+# buildcache, and deployed from there (runtime deps only) into DOT_RUNTIME_ROOT.
+spack:
+  specs:
+  # shell / dotfiles
+  - tmux
+  - stow@2.4.1
+  # python
+  - python@3.13
+  - py-pytest
+  - py-pip
+  - py-hatchling
+  # editor
+  - neovim
+  - ripgrep
+  - py-python-lsp-ruff
+  # graphs
+  - graphviz
+  - py-graphviz
+  - py-pyyaml
+  - py-r2rome
+  # the deployment has its own view; the build env doesn't need one
+  view: false
+  concretizer:
+    unify: true

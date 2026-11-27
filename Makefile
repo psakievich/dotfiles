@@ -1,19 +1,42 @@
-# An example of including a machine specific environment as precursor to the builtin ones
-# First define the name of the environment you intend to pre-include and the other envs
-# You wish to include
-# EXTERNAL_ENV := base
-ENVS = graphviz
+# Dotfiles: configuration and scripts only.
+#
+# Tools (nvim, tmux, stow, ...) come from whatever the gitignored env.sh sets
+# up; the shell sources it if present. tools/ builds a Spack deployment and
+# can link env.sh to it: tools/install.sh $PWD/env.sh
+#
+#   make deps     clone tpm
+#   make stow     link stow-point/ (i.e. ~/.profile) into $HOME
+#   make unstow   remove those links
+DOTFILES_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/
 
-# Optionally point to a different spack installation
-# SPACK_ROOT = /some/local/path
+TPM_VERSION ?= master
+TPM_URL     ?= https://github.com/tmux-plugins/tpm.git
+TPM_DIR     ?= $(DOTFILES_DIR).tmux/plugins/tpm
+STOW        ?= stow
+DOT_ENV     ?= $(DOTFILES_DIR)env.sh
 
-# Include the make file that builds everything else
-include internal.mk
+# gitignored, worktree-local overrides
+-include $(DOTFILES_DIR)local.mk
 
-# Define dependency rules for the other environments relative to the machine specific case
-core: $(SPACK_ENV_ROOT)/core/spack.lock
-editor: $(SPACK_ENV_ROOT)/editor/spack.lock
-graphviz: editor
+.PHONY: all deps update-deps stow unstow
 
-$(eval $(call env-depends-on,editor,core))
-$(eval $(call env-depends-on,graphviz,editor))
+all: deps
+
+print-%:
+	@echo $($(*))
+
+deps: $(TPM_DIR)
+
+$(TPM_DIR):
+	mkdir -p $(dir $@)
+	git clone --depth 1 --branch $(TPM_VERSION) $(TPM_URL) $@
+
+update-deps:
+	cd $(TPM_DIR) && git fetch --depth 1 origin $(TPM_VERSION) && git checkout FETCH_HEAD
+
+# stow may itself come from env.sh
+stow:
+	[ ! -f '$(DOT_ENV)' ] || . '$(DOT_ENV)'; $(STOW) --dir $(DOTFILES_DIR) --target $(HOME) stow-point
+
+unstow:
+	[ ! -f '$(DOT_ENV)' ] || . '$(DOT_ENV)'; $(STOW) --dir $(DOTFILES_DIR) --target $(HOME) --delete stow-point

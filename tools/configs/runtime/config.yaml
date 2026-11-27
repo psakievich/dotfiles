@@ -1,0 +1,7 @@
+# Runtime scope: installs come only from the buildcache into DOT_RUNTIME_ROOT.
+# No padding here, so runtime paths stay short and readable.
+config:
+  install_tree:
+    root: ${DOTSPACK_RUNTIME}/opt
+  source_cache: ${DOTSPACK_BUILD}/cache/source
+  misc_cache: ${DOTSPACK_BUILD}/cache/misc

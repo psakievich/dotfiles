@@ -74,10 +74,6 @@ function cdh(){
   cd ${HOME}
 }
 
-function sspack(){
-${DOTFILES:?}/spack/bin/spack "$@"
-}
-
 function cds(){
   if [ -n "${SCRATCH}" ]; then
     cd ${SCRATCH}
@@ -100,4 +96,91 @@ function gtw(){
 
 function git_branch_prune(){
     git branch | grep -v "$1" | xargs git branch -D
+}
+
+# Launch a subshell (or run a command) without the tools from env.sh.
+# The child starts from an empty environment, so nothing env.sh added to
+# PATH, CMAKE_PREFIX_PATH, PKG_CONFIG_PATH, DYLD_*/LD_*, PYTHONPATH, ... leaks.
+function hermetic(){
+  local mode=config
+  # child shell: --shell, else DOT_HERMETIC_SHELL, else the shell you are in
+  local _sh=${DOT_HERMETIC_SHELL:-}
+  if [ -z "$_sh" ]; then
+    if [ -n "${ZSH_VERSION:-}" ]; then _sh=zsh; else _sh=bash; fi
+  fi
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --env)   mode=env;  shift ;;
+      --bare)  mode=bare; shift ;;
+      --shell) _sh=${2:?hermetic: --shell needs bash or zsh}; shift 2 ;;
+      --shell=*) _sh=${1#--shell=}; shift ;;
+      --) shift; break ;;
+      -h|--help)
+        cat <<'HELP'
+usage: hermetic [--env | --bare] [--shell bash|zsh] [--] [cmd ...]
+
+Start a subshell (or run cmd) from a clean environment: system PATH, nothing
+inherited from the current shell.
+
+  (default)  dotfiles config (aliases, functions, XDG, prompt), without env.sh
+  --env      dotfiles config and env.sh, freshly sourced
+  --bare     no dotfiles at all: system PATH and a plain shell
+  --shell    child shell (default: $DOT_HERMETIC_SHELL, else the current shell).
+             It is looked up on the hermetic PATH, not the parent's.
+
+Passed through from the parent: HOME USER LOGNAME TERM SHLVL LANG LC_ALL TMPDIR
+SSH_AUTH_SOCK DISPLAY COLORTERM DOTLOCAL DOT_ENV, plus any variable names listed
+in DOT_HERMETIC_KEEP. The child sets DOT_HERMETIC=<mode> and
+DOT_HERMETIC_SHELL=<shell>.
+HELP
+        return 0 ;;
+      *) break ;;
+    esac
+  done
+
+  case $_sh in
+    bash|zsh) ;;
+    *) echo "hermetic: unsupported shell '$_sh' (bash or zsh)" >&2; return 2 ;;
+  esac
+
+  local base_path
+  base_path=$(getconf PATH 2>/dev/null) || base_path=/usr/bin:/bin:/usr/sbin:/sbin
+
+  # resolve the shell on the hermetic PATH so an env.sh/homebrew shell can't sneak in
+  local sh_bin
+  sh_bin=$(PATH="$base_path" command -v "$_sh") || {
+    echo "hermetic: $_sh not found on $base_path" >&2; return 127; }
+
+  local -a keep
+  keep=("HOME=${HOME}" "PATH=${base_path}" "SHLVL=${SHLVL:-1}"
+        "DOT_HERMETIC=${mode}" "DOT_HERMETIC_SHELL=${_sh}"
+        "BASH_SILENCE_DEPRECATION_WARNING=1")
+  local _v _val
+  for _v in $(echo USER LOGNAME TERM LANG LC_ALL TMPDIR SSH_AUTH_SOCK DISPLAY COLORTERM \
+                   DOTLOCAL DOT_ENV ${DOT_HERMETIC_KEEP:-}); do
+    eval "_val=\${${_v}-__dot_unset__}"
+    [ "$_val" = __dot_unset__ ] || keep+=("${_v}=${_val}")
+  done
+
+  # rc-file-free invocations: bash --noprofile --norc / zsh -f (NO_RCS)
+  local -a norc
+  if [ "$_sh" = zsh ]; then norc=(-f); else norc=(--noprofile --norc); fi
+
+  if [ "$mode" = bare ]; then
+    if [ $# -gt 0 ]; then
+      env -i "${keep[@]}" "$@"
+    else
+      env -i "${keep[@]}" "$sh_bin" "${norc[@]}"
+    fi
+  elif [ $# -gt 0 ]; then
+    env -i "${keep[@]}" "$sh_bin" "${norc[@]}" \
+      -c '. "$0/stow-point/.profile" && exec "$@"' "${DOTFILES:?}" "$@"
+  elif [ "$_sh" = zsh ]; then
+    # zsh has no --rcfile: point ZDOTDIR at a .zshrc that only sources the
+    # profile, and skip the global /etc/zprofile, /etc/zshrc, ... (-d)
+    env -i "${keep[@]}" DOTFILES="${DOTFILES:?}" \
+      ZDOTDIR="${DOTFILES:?}/shell/hermetic-zdotdir" "$sh_bin" -d -i
+  else
+    env -i "${keep[@]}" "$sh_bin" --rcfile "${DOTFILES:?}/stow-point/.profile"
+  fi
 }

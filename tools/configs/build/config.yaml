@@ -1,0 +1,11 @@
+# Build scope: everything here lives under DOT_BUILD_ROOT (scratch-friendly).
+config:
+  install_tree:
+    root: ${DOTSPACK_BUILD}/opt
+    # Pad the prefix so binaries can be relocated into any (shorter) runtime
+    # path when installed from the buildcache.
+    padded_length: 128
+  build_stage:
+  - ${DOTSPACK_BUILD}/stage
+  source_cache: ${DOTSPACK_BUILD}/cache/source
+  misc_cache: ${DOTSPACK_BUILD}/cache/misc
