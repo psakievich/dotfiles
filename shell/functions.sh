@@ -2,6 +2,18 @@ path_append ()  { path_remove $1; export PATH="$PATH:$1"; }
 path_prepend () { path_remove $1; export PATH="$1:$PATH"; }
 path_remove ()  { export PATH=`echo -n $PATH | awk -v RS=: -v ORS=: '$0 != "'$1'"' | sed 's/:$//'`; }
 
+append_path_if_there(){
+  if [ -d "$1" ]; then
+    export PATH="$PATH:$1"
+  fi
+}
+
+prepend_path_if_there(){
+  if [ -d "$1" ]; then
+    export PATH="$1:$PATH"
+  fi
+}
+
 clear_shell_function(){
   # Check if the original function exists and cache it
   if declare -f "$1" > /dev/null; then
